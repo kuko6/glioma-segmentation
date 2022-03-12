@@ -1,0 +1,12 @@
+.idea/
+.DS_Store
+.git
+
+*.txt
+*.json
+*.yml
+
+*.ipynb
+test.*
+
+azure/
