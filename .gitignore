@@ -2,3 +2,4 @@
 .DS_Store
 
 azureml_environment.json
+azure/config.json

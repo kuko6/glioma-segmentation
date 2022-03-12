@@ -37,6 +37,9 @@ if __name__ == '__main__':
     testing = os.path.join(data, 'test/')
     validation = os.path.join(data, 'val/')
 
+    if not os.path.isdir('outputs'):
+        os.mkdir('outputs')
+
     test_image_t1ce=nib.load(training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz').get_fdata()
     test_image_t1=nib.load(training_path + 'BraTS2021_00002/BraTS2021_00002_t1.nii.gz').get_fdata()
     test_image_flair=nib.load(training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz').get_fdata()
@@ -56,9 +59,7 @@ if __name__ == '__main__':
     ax5.imshow(test_mask[:,:,80])
     ax5.set_title('Mask')
 
-
-
-    fig.savefig('outputs/images/test.png')
+    fig.savefig('outputs/test.png')
     #plt.imsave('outputs/images/test.png', fig, cmap='gray')
 
     '''
