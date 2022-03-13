@@ -1,5 +1,7 @@
 .idea/
 .DS_Store
 
+__pycache__/
+
 azureml_environment.json
 azure/config.json
