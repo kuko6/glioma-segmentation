@@ -24,6 +24,9 @@ dependencies:
   - tensorflow-gpu~=2.7.0
   - azureml-core~=1.39.0
   - opencv-python~=4.5.5.64
+  - opencv-python-headless~=4.5.5.64
+  - scikit-image
+  - segmentation-models-3D
 - pip=20.2.4
 channels:
 - anaconda
