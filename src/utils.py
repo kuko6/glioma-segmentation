@@ -39,6 +39,7 @@ def load_mask(mask_list, segmenting_subregion):
         temp_mask = nib.load(mask_name).get_fdata()
         temp_mask = temp_mask.astype(np.uint8)
         temp_mask[temp_mask == 4] = 3  # Reassign mask values 4 to 3
+
         # segmenting label 1
         if segmenting_subregion == 1:
             temp_mask[temp_mask == 2] = 0
@@ -47,12 +48,20 @@ def load_mask(mask_list, segmenting_subregion):
         elif segmenting_subregion == 2:
             temp_mask[temp_mask == 1] = 0
             temp_mask[temp_mask == 3] = 0
+            temp_mask[temp_mask == 2] = 1
         # segmenting label 3
         elif segmenting_subregion == 3:
             temp_mask[temp_mask == 1] = 0
             temp_mask[temp_mask == 2] = 0
+            temp_mask[temp_mask == 3] = 1
         image = temp_mask[56:184, 56:184, 13:141]
-        image = to_categorical(image, num_classes=4)
+
+        #print(np.unique(temp_mask))
+
+        if segmenting_subregion == 0:
+            image = to_categorical(image, num_classes=4)
+        else:
+            image = to_categorical(image, num_classes=2)
 
         images.append(image)
 
@@ -80,8 +89,8 @@ def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, segmenti
             batch_end += batch_size
 
 
-def callback():
-    csv_logger = CSVLogger('outputs/training.log', separator=',', append=False)
+def callback(segmenting_subregion=''):
+    csv_logger = CSVLogger(f'outputs/training_{segmenting_subregion}.log', separator=',', append=False)
 
     callbacks = [EarlyStopping(monitor='loss', min_delta=0, patience=2, verbose=1, mode='auto'),
                  ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),

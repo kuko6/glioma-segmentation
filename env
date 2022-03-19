@@ -1,0 +1,25 @@
+channels:
+  - anaconda
+  - conda-forge
+dependencies:
+  - python=3.8
+  - cuDNN=8.1.0
+  - pip:
+      - azureml-core==1.39.0
+      - azureml-defaults==1.39.0
+      - azureml-mlflow==1.39.0
+      - azureml-telemetry==1.39.0
+      - keras~=2.7.0
+      - matplotlib~=3.5.0
+      - nibabel~=3.2.2
+      - numpy~=1.21.0
+      - pandas~=1.3.0
+      - scikit-learn~=1.0.2
+      - scipy~=1.7.0
+      - tensorflow-gpu==2.7.0
+      - opencv-python~=4.5.5.64
+      - opencv-python-headless~=4.5.5.64
+      - scikit-image
+      - segmentation-models-3D
+  - pip=20.2.4
+name: azureml_ec24de5e30adcb894a031b6c8906355f

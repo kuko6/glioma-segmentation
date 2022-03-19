@@ -36,9 +36,11 @@ def dice_coef_enhancing(y_true, y_pred, epsilon=1e-6):
 
 
 def loss():
-    # Define loss, metrics and optimizer to be used for training
-    wt0, wt1, wt2, wt3 = 0.25, 0.25, 0.25, 0.25
-    dice_loss = losses.DiceLoss(class_weights=np.array([wt0, wt1, wt2, wt3]))
+    #wt0, wt1, wt2, wt3 = 0.25, 0.25, 0.25, 0.25
+    #dice_loss = losses.DiceLoss(class_weights=np.array([wt0, wt1, wt2, wt3]))
+
+    wt0, wt1 = 0.50, 0.50
+    dice_loss = losses.DiceLoss(class_weights=np.array([wt0, wt1]))
     focal_loss = losses.CategoricalFocalLoss()
     # total_loss = dice_loss + (1 * focal_loss)
     total_loss = dice_loss

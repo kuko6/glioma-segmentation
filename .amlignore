@@ -10,3 +10,4 @@
 test.*
 
 azure/
+separate_subregion_training/
