@@ -11,3 +11,8 @@ test.*
 
 azure/
 separate_subregion_training/
+
+models/model-best.h5
+#models/model_1.h5
+models/model_2.h5
+models/model_3.h5

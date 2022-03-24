@@ -3,6 +3,8 @@ import nibabel as nib
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.utils import to_categorical
 from keras.callbacks import CSVLogger, EarlyStopping, ReduceLROnPlateau
+import wandb
+import tensorflow as tf
 
 
 def load_img(flair_list, t1ce_list, t2_list):
@@ -33,7 +35,7 @@ def load_img(flair_list, t1ce_list, t2_list):
     return images
 
 
-def load_mask(mask_list, segmenting_subregion):
+def load_mask(mask_list, segmenting_subregion=0):
     images = []
     for mask_name in mask_list:
         temp_mask = nib.load(mask_name).get_fdata()
@@ -54,9 +56,9 @@ def load_mask(mask_list, segmenting_subregion):
             temp_mask[temp_mask == 1] = 0
             temp_mask[temp_mask == 2] = 0
             temp_mask[temp_mask == 3] = 1
-        image = temp_mask[56:184, 56:184, 13:141]
 
-        #print(np.unique(temp_mask))
+        image = temp_mask[56:184, 56:184, 13:141]
+        # print(np.unique(temp_mask))
 
         if segmenting_subregion == 0:
             image = to_categorical(image, num_classes=4)
@@ -83,7 +85,7 @@ def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, segmenti
             x = load_img(flair_list[batch_start:limit], t1ce_list[batch_start:limit], t2_list[batch_start:limit])
             y = load_mask(mask_list[batch_start:limit], segmenting_subregion)
 
-            yield x, y  # a tuple with two numpy arrays with batch_size samples
+            yield (x, y)  # a tuple with two numpy arrays with batch_size samples
 
             batch_start += batch_size
             batch_end += batch_size
@@ -97,3 +99,49 @@ def callback(segmenting_subregion=''):
                  csv_logger]
 
     return callbacks
+
+
+# https://wandb.ai/ayush-thakur/image-segmentation/reports/Image-Segmentation-Using-Keras-and-W-B--VmlldzoyNTE1Njc
+class SemanticLogger(tf.keras.callbacks.Callback):
+    def __init__(self, testloader):
+        super(SemanticLogger, self).__init__()
+        self.val_images, self.val_masks = next(iter(testloader))
+        self.segmentation_classes = ['background', 'necrotic', 'edema', 'enhancing']
+
+    # returns a dictionary of labels
+    def labels(self):
+        l = {}
+        for i, label in enumerate(self.segmentation_classes):
+            l[i] = label
+        return l
+
+    # util function for generating interactive image mask from components
+    def wandb_mask(self, bg_img, pred_mask, true_mask):
+        return wandb.Image(bg_img, masks={
+            "prediction": {
+                "mask_data": pred_mask,
+                "class_labels": self.labels()
+            },
+            "ground truth": {
+                "mask_data": true_mask,
+                "class_labels": self.labels()
+            }
+        })
+
+    def on_epoch_end(self, logs, epoch):
+        pred_masks = self.model.predict(self.val_images)
+        pred_masks = np.argmax(pred_masks, axis=-1)
+
+        val_images = tf.image.convert_image_dtype(self.val_images, tf.uint8)
+        val_masks = tf.image.convert_image_dtype(self.val_masks, tf.uint8)
+        #val_masks = tf.squeeze(val_masks, axis=-1)
+
+        pred_masks = tf.image.convert_image_dtype(pred_masks, tf.uint8)
+
+        mask_list = []
+        for i in range(len(self.val_images)):
+            mask_list.append(self.wandb_mask(val_images[i].numpy(),
+                                        pred_masks[i].numpy(),
+                                        val_masks[i].numpy()))
+
+        wandb.log({"predictions": mask_list})

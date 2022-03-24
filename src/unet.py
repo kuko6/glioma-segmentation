@@ -2,7 +2,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv3D, MaxPooling3D, concatenate, Conv3DTranspose, BatchNormalization, Dropout, Lambda
 
 
-def unet_model(IMG_HEIGHT, IMG_WIDTH, IMG_DEPTH, IMG_CHANNELS, num_classes):
+def unet_model(IMG_HEIGHT, IMG_WIDTH, IMG_DEPTH, IMG_CHANNELS, NUM_CLASSES):
     inputs = Input((IMG_HEIGHT, IMG_WIDTH, IMG_DEPTH, IMG_CHANNELS))
     #s = Lambda(lambda x: x / 255)(inputs)   # No need for this if we normalize our inputs beforehand
     s = inputs
@@ -58,9 +58,11 @@ def unet_model(IMG_HEIGHT, IMG_WIDTH, IMG_DEPTH, IMG_CHANNELS, num_classes):
     c9 = Dropout(0.1)(c9)
     c9 = Conv3D(16, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(c9)
 
-    outputs = Conv3D(num_classes, (1, 1, 1), activation='softmax')(c9)
+    outputs = Conv3D(NUM_CLASSES, (1, 1, 1), activation='softmax')(c9)
 
     model = Model(inputs=[inputs], outputs=[outputs])
+    print("input shape: ", model.input_shape)
+    print("output shape: ", model.output_shape)
     #model.summary()
 
     return model
