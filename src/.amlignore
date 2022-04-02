@@ -16,3 +16,5 @@ models/model-best.h5
 models/model_1.h5
 models/model_2.h5
 models/model_3.h5
+models/model_binarycross_2.h5
+models/categorical_crossentropy_20_2ch_sub0.h5

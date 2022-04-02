@@ -4,8 +4,8 @@ import numpy as np
 
 
 # dice loss as defined above for 4 classes
-def dice_coef(y_true, y_pred, smooth=1.0):
-    class_num = 2
+def dice_coef(y_true, y_pred, smooth=1.0, classes=4):
+    class_num = classes
     for i in range(class_num):
         y_true_f = K.flatten(y_true[:,:,:,:,i])
         y_pred_f = K.flatten(y_pred[:,:,:,:,i])

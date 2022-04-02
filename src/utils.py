@@ -7,25 +7,22 @@ import wandb
 import tensorflow as tf
 
 
-def load_img(flair_list, t1ce_list, t2_list):
+def load_img(flair_list, t1ce_list, t2_list, channels):
     scaler = MinMaxScaler()
     images = []
     for flair_name, t1ce_name, t2_name in zip(flair_list, t1ce_list, t2_list):
-        temp_image_flair = nib.load(flair_name).get_fdata()
-        # print(np.max(temp_image_flair))
-        temp_image_flair = scaler.fit_transform(temp_image_flair.reshape(-1, temp_image_flair.shape[-1])).reshape(
-            temp_image_flair.shape)
-        # print("========================================")
-        # print(np.max(temp_image_flair))
-        temp_image_t1ce = nib.load(t1ce_name).get_fdata()
-        temp_image_t1ce = scaler.fit_transform(temp_image_t1ce.reshape(-1, temp_image_t1ce.shape[-1])).reshape(
-            temp_image_t1ce.shape)
+        # normalisation based on https://stackoverflow.com/a/59601298
+        flair = nib.load(flair_name).get_fdata()
+        flair = scaler.fit_transform(flair.reshape(-1, flair.shape[-1])).reshape(flair.shape)
+        t1ce = nib.load(t1ce_name).get_fdata()
+        t1ce = scaler.fit_transform(t1ce.reshape(-1, t1ce.shape[-1])).reshape(t1ce.shape)
+        t2 = nib.load(t2_name).get_fdata()
+        t2 = scaler.fit_transform(t2.reshape(-1, t2.shape[-1])).reshape(t2.shape)
 
-        temp_image_t2 = nib.load(t2_name).get_fdata()
-        temp_image_t2 = scaler.fit_transform(temp_image_t2.reshape(-1, temp_image_t2.shape[-1])).reshape(
-            temp_image_t2.shape)
-
-        image = np.stack([temp_image_flair, temp_image_t1ce, temp_image_t2], axis=3)
+        if channels == 3:
+            image = np.stack([flair, t1ce, t2], axis=3)
+        else:
+            image = np.stack([flair, t1ce], axis=3)
         image = image[56:184, 56:184, 13:141]
 
         images.append(image)
@@ -39,7 +36,7 @@ def load_mask(mask_list, segmenting_subregion=0):
     images = []
     for mask_name in mask_list:
         temp_mask = nib.load(mask_name).get_fdata()
-        temp_mask = temp_mask.astype(np.uint8)
+        #temp_mask = temp_mask.astype(np.uint8)
         temp_mask[temp_mask == 4] = 3  # Reassign mask values 4 to 3
 
         # segmenting label 1
@@ -63,7 +60,8 @@ def load_mask(mask_list, segmenting_subregion=0):
         if segmenting_subregion == 0:
             image = to_categorical(image, num_classes=4)
         else:
-            image = to_categorical(image, num_classes=2)
+            #image = to_categorical(image, num_classes=2)
+            image = tf.one_hot(image, 1, on_value=0, off_value=1)
 
         images.append(image)
 
@@ -72,7 +70,7 @@ def load_mask(mask_list, segmenting_subregion=0):
     return images
 
 
-def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, segmenting_subregion):
+def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, channels=3, segmenting_subregion=0):
     img_len = len(flair_list)
 
     # keras needs the generator infinite
@@ -82,7 +80,7 @@ def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, segmenti
 
         while batch_start < img_len:
             limit = min(batch_end, img_len)
-            x = load_img(flair_list[batch_start:limit], t1ce_list[batch_start:limit], t2_list[batch_start:limit])
+            x = load_img(flair_list[batch_start:limit], t1ce_list[batch_start:limit], t2_list[batch_start:limit], channels)
             y = load_mask(mask_list[batch_start:limit], segmenting_subregion)
 
             yield (x, y)  # a tuple with two numpy arrays with batch_size samples
@@ -94,10 +92,13 @@ def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, segmenti
 def callback(segmenting_subregion=''):
     csv_logger = CSVLogger(f'outputs/training_{segmenting_subregion}.log', separator=',', append=False)
 
-    callbacks = [EarlyStopping(monitor='loss', min_delta=0, patience=2, verbose=1, mode='auto'),
+    callbacks = [ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
+                 csv_logger]
+    '''
+    callbacks = [EarlyStopping(monitor='loss', min_delta=0, patience=3, verbose=1, mode='auto'),
                  ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
                  csv_logger]
-
+    '''
     return callbacks
 
 

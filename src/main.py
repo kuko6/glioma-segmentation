@@ -2,14 +2,8 @@ import argparse
 # from azureml.core import Run
 
 import os
-import nibabel as nib
-import numpy as np
-import matplotlib.pyplot as plt
 import glob
-import pickle
-from scipy import ndimage
 import segmentation_models_3D as sm
-import cv2
 import tensorflow as tf
 import pandas as pd
 import wandb
@@ -18,7 +12,6 @@ from wandb.keras import WandbCallback
 import utils
 import losses
 import unet
-import images
 from generator import BratsGen
 
 
@@ -35,7 +28,6 @@ def list_files(path):
 
 def main():
     # print(help('modules'))
-
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
     parser = argparse.ArgumentParser()
@@ -45,14 +37,14 @@ def main():
 
     wandb_key = args.wandb
     wandb.login(key=wandb_key)
-    wandb.init(project="BraTS2021", entity="kuko")
+    # wandb.init(project="BraTS2021", entity="kuko")
     wandb.config = {
-        "num_classes": 2,
-        "img_channels": 3,
+        "num_classes": 4,
+        "img_channels": 2,
         "learning_rate": 0.001,
         "epochs": 50,
         "batch_size": 2,
-        "loss": "dice_loss",
+        "loss": "categorical_crossentropy",
         "optimizer": "adam",
         "dataset": "BraTS2021"
     }
@@ -67,8 +59,6 @@ def main():
     if not os.path.isdir('outputs'):
         os.mkdir('outputs')
 
-    # images.test_images(training_path)
-
     train_t2_list = sorted(glob.glob(training_path + '/*/*t2.nii.gz'))
     train_t1ce_list = sorted(glob.glob(training_path + '/*/*t1ce.nii.gz'))
     train_flair_list = sorted(glob.glob(training_path + '/*/*flair.nii.gz'))
@@ -80,40 +70,57 @@ def main():
     val_mask_list = sorted(glob.glob(validation_path + '/*/*seg.nii.gz'))
 
     batch_size = config["batch_size"]
-    # for subregion in [1, 2, 3]:
-    for subregion in [2]:
-        train_img_datagen = BratsGen(train_flair_list, train_t1ce_list, train_t2_list, train_mask_list, (128, 128, 128),
-                                     img_channels=config['img_channels'], classes=config['num_classes'],
+    if config['num_classes'] == 4:
+        subregions = [0]
+    else:
+        # subregions = [1, 2, 3]
+        subregions = [2]
+
+    for subregion in subregions:
+        run = wandb.init(project="BraTS2021",
+                         name=f"{config['loss']}_{config['epochs']}_{config['img_channels']}ch_sub{subregion}",
+                         entity="kuko",
+                         reinit=True)
+
+        train_img_datagen = BratsGen(train_flair_list, train_t1ce_list, train_t2_list, train_mask_list,
+                                     (128, 128, 128), img_channels=config['img_channels'], classes=config['num_classes'],
                                      segmenting_subregion=subregion)
+
         val_img_datagen = BratsGen(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list, (128, 128, 128),
                                    img_channels=config['img_channels'], classes=config['num_classes'],
                                    segmenting_subregion=subregion)
+        '''
+        train_img_datagen = utils.image_loader(train_flair_list, train_t1ce_list, train_t2_list, train_mask_list,
+                                               batch_size=batch_size, channels=config['img_channels'],
+                                               segmenting_subregion=subregion)
 
-        # train_img_datagen = utils.image_loader(train_flair_list, train_t1ce_list, train_t2_list, train_mask_list, batch_size, subregion)
-        # val_img_datagen = utils.image_loader(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list, batch_size, subregion)
-
-        metrics = [sm.metrics.IOUScore(threshold=0.5),
-                   tf.keras.metrics.MeanIoU(num_classes=config['num_classes']),
-                   losses.dice_coef, losses.dice_coef2]
+        val_img_datagen = utils.image_loader(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list,
+                                             batch_size=batch_size, channels=config['img_channels'],
+                                             segmenting_subregion=subregion)
         '''
-        metrics = [sm.metrics.IOUScore(threshold=0.5), tf.keras.metrics.MeanIoU(num_classes=2),
-                   losses.dice_coef, losses.dice_coef_necrotic, losses.dice_coef_edema, losses.dice_coef_enhancing]
-        '''
-        '''
-        metrics = [tf.keras.metrics.MeanIoU(num_classes=2),
-                   losses.dice_coef, losses.dice_coef_necrotic, losses.dice_coef_edema, losses.dice_coef_enhancing]
-        '''
+        if config['num_classes'] == 4:
+            metrics = [sm.metrics.IOUScore(threshold=0.5),
+                       tf.keras.metrics.MeanIoU(num_classes=4),
+                       losses.dice_coef, losses.dice_coef2, losses.dice_coef_necrotic,
+                       losses.dice_coef_edema, losses.dice_coef_enhancing]
+        else:
+            metrics = [sm.metrics.IOUScore(threshold=0.5),
+                       tf.keras.metrics.MeanIoU(num_classes=2),
+                       losses.dice_coef, losses.dice_coef2]
 
         LR = config["learning_rate"]
         optim = tf.keras.optimizers.Adam(LR)
         steps_per_epoch = len(train_flair_list) // batch_size
         val_steps_per_epoch = len(val_flair_list) // batch_size
 
-        model = unet.unet_model(IMG_HEIGHT=128, IMG_WIDTH=128, IMG_DEPTH=128,
-                                IMG_CHANNELS=config["img_channels"], NUM_CLASSES=config["num_classes"])
+        model = unet.unet_model(img_height=128, img_width=128, img_depth=128,
+                                img_channels=config["img_channels"], num_classes=config["num_classes"])
 
-        # model.compile(optimizer=optim, loss=losses.loss(), metrics=metrics)
-        model.compile(optimizer=optim, loss="categorical_crossentropy", metrics=metrics)
+        if config['num_classes'] == 4:
+            # model.compile(optimizer=optim, loss=losses.loss(), metrics=metrics)
+            model.compile(optimizer=optim, loss="categorical_crossentropy", metrics=metrics)
+        else:
+            model.compile(optimizer=optim, loss="binary_crossentropy", metrics=metrics)
 
         history = model.fit(train_img_datagen,
                             steps_per_epoch=steps_per_epoch,
@@ -139,7 +146,9 @@ def main():
         with open(hist_csv_file, mode='w') as f:
             hist_df.to_csv(f)
 
-    wandb.finish()
+        run.finish()
+
+    # wandb.finish()
     '''
     training_files = list_files(training_path)
     validation_files = list_files(validation)
