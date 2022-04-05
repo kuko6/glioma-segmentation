@@ -91,14 +91,14 @@ def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, channels
 
 def callback(segmenting_subregion=''):
     csv_logger = CSVLogger(f'outputs/training_{segmenting_subregion}.log', separator=',', append=False)
-
+    '''
     callbacks = [ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
                  csv_logger]
     '''
-    callbacks = [EarlyStopping(monitor='loss', min_delta=0, patience=3, verbose=1, mode='auto'),
+    callbacks = [EarlyStopping(monitor='loss', min_delta=0, patience=5, verbose=1, mode='auto'),
                  ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
                  csv_logger]
-    '''
+
     return callbacks
 
 

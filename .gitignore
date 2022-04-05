@@ -6,3 +6,4 @@ models/
 
 azureml_environment.json
 azure/config.json
+*.h5

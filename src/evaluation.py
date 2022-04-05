@@ -21,7 +21,7 @@ subregion = 1
 classes = 4
 channels = 2
 n_slice = 80
-model_name = 'models/categorical_crossentropy_20_2ch_sub0.h5'
+model_name = 'model_0.h5'
 
 
 def predict_image(my_model, flair, t1ce, t2, mask, subdir=''):
@@ -146,11 +146,13 @@ def main():
     test_flair_list = glob.glob(testing_path + '/*/*flair.nii.gz')
     test_mask_list = glob.glob(testing_path + '/*/*seg.nii.gz')
 
+    '''
     test_mask=nib.load(training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz').get_fdata()
     fig, ax1 = plt.subplots(1, 1, figsize = (15,15))
     ax1.imshow(ndimage.rotate(montage(test_mask[:,:,20:100]), 270), cmap ='gray')
     fig.savefig('outputs/test.png')
     return
+    '''
 
     test_img_datagen = utils.image_loader(test_flair_list, test_t1ce_list, test_t2_list, test_mask_list,
                                           batch_size=batch_size, channels=channels,

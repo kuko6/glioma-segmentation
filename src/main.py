@@ -3,10 +3,14 @@ import argparse
 
 import os
 import glob
+
+import numpy as np
 import segmentation_models_3D as sm
 import tensorflow as tf
 import pandas as pd
 import wandb
+from matplotlib import pyplot as plt
+from scipy import ndimage
 from wandb.keras import WandbCallback
 
 import utils
@@ -26,6 +30,34 @@ def list_files(path):
     return files
 
 
+def test_generator(data_gen, channels):
+    img, mask = data_gen.__getitem__(0)
+    mask = mask[0]
+    print('img shape: ', img.shape)
+    print('mask shape: ', mask.shape)
+    mask = np.argmax(mask, axis=-1)
+
+    if channels == 3:
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize = (20, 10))
+        ax1.imshow(ndimage.rotate(img[0][:,:,80,0], 270), cmap = 'gray')
+        ax1.set_title('Image flair')
+        ax2.imshow(ndimage.rotate(img[0][:,:,80,1], 270), cmap = 'gray')
+        ax2.set_title('Image t1ce')
+        ax3.imshow(ndimage.rotate(img[0][:,:,80,2], 270), cmap = 'gray')
+        ax3.set_title('Image t2')
+        ax4.imshow(ndimage.rotate(mask[:,:,80], 270))
+        ax4.set_title('Mask')
+        fig.savefig(f'outputs/test.png')
+    elif channels == 2:
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize = (20, 10))
+        ax1.imshow(ndimage.rotate(img[0][:,:,80,0], 270), cmap = 'gray')
+        ax1.set_title('Image flair')
+        ax2.imshow(ndimage.rotate(img[0][:,:,80,1], 270), cmap = 'gray')
+        ax2.set_title('Image t1ce')
+        ax3.imshow(ndimage.rotate(mask[:,:,80], 270))
+        ax3.set_title('Mask')
+        fig.savefig(f'outputs/test.png')
+
 def main():
     # print(help('modules'))
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
@@ -40,7 +72,7 @@ def main():
     # wandb.init(project="BraTS2021", entity="kuko")
     wandb.config = {
         "num_classes": 4,
-        "img_channels": 2,
+        "img_channels": 3,
         "learning_rate": 0.001,
         "epochs": 50,
         "batch_size": 2,
@@ -89,6 +121,7 @@ def main():
         val_img_datagen = BratsGen(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list, (128, 128, 128),
                                    img_channels=config['img_channels'], classes=config['num_classes'],
                                    segmenting_subregion=subregion)
+
         '''
         train_img_datagen = utils.image_loader(train_flair_list, train_t1ce_list, train_t2_list, train_mask_list,
                                                batch_size=batch_size, channels=config['img_channels'],
@@ -98,6 +131,9 @@ def main():
                                              batch_size=batch_size, channels=config['img_channels'],
                                              segmenting_subregion=subregion)
         '''
+
+        test_generator(train_img_datagen, channels=config['img_channels'])
+
         if config['num_classes'] == 4:
             metrics = [sm.metrics.IOUScore(threshold=0.5),
                        tf.keras.metrics.MeanIoU(num_classes=4),
