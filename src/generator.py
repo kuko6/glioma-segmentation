@@ -35,7 +35,7 @@ class BratsGen(tf.keras.utils.Sequence):
 
         return X, y
 
-    # https://stackoverflow.com/a/44007180
+    # based on https://stackoverflow.com/a/44007180
     def __get_dimensions(self, img, scale=.7):
         center_x, center_y = img.shape[1] / 2, img.shape[0] / 2
         width_scaled, height_scaled = img.shape[1] * scale, img.shape[0] * scale
@@ -74,11 +74,12 @@ class BratsGen(tf.keras.utils.Sequence):
             tmp_mask = np.zeros((128, 128, 128))
 
             # resize the images and mask
+            inter = cv2.INTER_NEAREST
             for i in range(128):
-                tmp_flair[:, :, i] = cv2.resize(flair[:, :, i + volume_start], (128, 128))
-                tmp_t1ce[:, :, i] = cv2.resize(t1ce[:, :, i + volume_start], (128, 128))
-                tmp_t2[:, :, i] = cv2.resize(t2[:, :, i + volume_start], (128, 128))
-                tmp_mask[:, :, i] = cv2.resize(mask[:, :, i + volume_start], (128, 128))
+                tmp_flair[:, :, i] = cv2.resize(flair[:, :, i + volume_start], (128, 128), interpolation=inter)
+                tmp_t1ce[:, :, i] = cv2.resize(t1ce[:, :, i + volume_start], (128, 128), interpolation=inter)
+                tmp_t2[:, :, i] = cv2.resize(t2[:, :, i + volume_start], (128, 128), interpolation=inter)
+                tmp_mask[:, :, i] = cv2.resize(mask[:, :, i + volume_start], (128, 128), interpolation=inter)
             flair = tmp_flair
             t1ce = tmp_t1ce
             t2 = tmp_t2
@@ -119,8 +120,9 @@ class BratsGen(tf.keras.utils.Sequence):
             if self.segmenting_subregion == 0:
                 mask = to_categorical(mask, num_classes=4)
             else:
-                # mask = to_categorical(mask, num_classes=2)
-                mask = tf.one_hot(mask, 1, on_value=0, off_value=1)
+                mask = to_categorical(mask, num_classes=2)
+                # mask = tf.one_hot(mask, 1, on_value=0, off_value=1)
+            # mask = mask.astype(np.uint8)
 
             images.append(image)
             masks.append(mask)

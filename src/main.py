@@ -15,6 +15,7 @@ from wandb.keras import WandbCallback
 
 import utils
 import losses
+from segmentation_models_3D import losses as ls
 import unet
 from generator import BratsGen
 
@@ -32,31 +33,32 @@ def list_files(path):
 
 def test_generator(data_gen, channels):
     img, mask = data_gen.__getitem__(0)
-    mask = mask[0]
+    #mask = mask[0]
     print('img shape: ', img.shape)
     print('mask shape: ', mask.shape)
     mask = np.argmax(mask, axis=-1)
 
     if channels == 3:
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize = (20, 10))
-        ax1.imshow(ndimage.rotate(img[0][:,:,80,0], 270), cmap = 'gray')
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 10))
+        ax1.imshow(ndimage.rotate(img[0][:, :, 80, 0], 270), cmap='gray')
         ax1.set_title('Image flair')
-        ax2.imshow(ndimage.rotate(img[0][:,:,80,1], 270), cmap = 'gray')
+        ax2.imshow(ndimage.rotate(img[0][:, :, 80, 1], 270), cmap='gray')
         ax2.set_title('Image t1ce')
-        ax3.imshow(ndimage.rotate(img[0][:,:,80,2], 270), cmap = 'gray')
+        ax3.imshow(ndimage.rotate(img[0][:, :, 80, 2], 270), cmap='gray')
         ax3.set_title('Image t2')
-        ax4.imshow(ndimage.rotate(mask[:,:,80], 270))
+        ax4.imshow(ndimage.rotate(mask[0][:, :, 80], 270))
         ax4.set_title('Mask')
         fig.savefig(f'outputs/test.png')
-    elif channels == 2:
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize = (20, 10))
-        ax1.imshow(ndimage.rotate(img[0][:,:,80,0], 270), cmap = 'gray')
+    else: # 2 channels
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 10))
+        ax1.imshow(ndimage.rotate(img[0][:, :, 80, 0], 270), cmap='gray')
         ax1.set_title('Image flair')
-        ax2.imshow(ndimage.rotate(img[0][:,:,80,1], 270), cmap = 'gray')
+        ax2.imshow(ndimage.rotate(img[0][:, :, 80, 1], 270), cmap='gray')
         ax2.set_title('Image t1ce')
-        ax3.imshow(ndimage.rotate(mask[:,:,80], 270))
+        ax3.imshow(ndimage.rotate(mask[0][:, :, 80], 270))
         ax3.set_title('Mask')
         fig.savefig(f'outputs/test.png')
+    plt.close(fig)
 
 def main():
     # print(help('modules'))
@@ -71,12 +73,12 @@ def main():
     wandb.login(key=wandb_key)
     # wandb.init(project="BraTS2021", entity="kuko")
     wandb.config = {
-        "num_classes": 4,
-        "img_channels": 3,
-        "learning_rate": 0.001,
+        "num_classes": 2,
+        "img_channels": 2,
+        "learning_rate": 0.0001, #0.001
         "epochs": 50,
         "batch_size": 2,
-        "loss": "categorical_crossentropy",
+        "loss": "weighted_cross_entropy",
         "optimizer": "adam",
         "dataset": "BraTS2021"
     }
@@ -115,11 +117,15 @@ def main():
                          reinit=True)
 
         train_img_datagen = BratsGen(train_flair_list, train_t1ce_list, train_t2_list, train_mask_list,
-                                     (128, 128, 128), img_channels=config['img_channels'], classes=config['num_classes'],
+                                     (128, 128, 128), img_channels=config['img_channels'],
+                                     classes=config['num_classes'],
+                                     batch_size=config['batch_size'],
                                      segmenting_subregion=subregion)
 
-        val_img_datagen = BratsGen(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list, (128, 128, 128),
-                                   img_channels=config['img_channels'], classes=config['num_classes'],
+        val_img_datagen = BratsGen(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list,
+                                   (128, 128, 128),img_channels=config['img_channels'],
+                                   classes=config['num_classes'],
+                                   batch_size=config['batch_size'],
                                    segmenting_subregion=subregion)
 
         '''
@@ -148,22 +154,46 @@ def main():
         optim = tf.keras.optimizers.Adam(LR)
         steps_per_epoch = len(train_flair_list) // batch_size
         val_steps_per_epoch = len(val_flair_list) // batch_size
+        #steps_per_epoch = 10
+        #val_steps_per_epoch = 2
 
         model = unet.unet_model(img_height=128, img_width=128, img_depth=128,
                                 img_channels=config["img_channels"], num_classes=config["num_classes"])
 
-        if config['num_classes'] == 4:
+        if config['loss'] == "dice_loss":
+            #model.compile(optimizer=optim, loss=losses.dice_loss, metrics=metrics)
+            loss = sm.losses.DiceLoss(class_weights=[0.02, 0.98])
+            model.compile(optimizer=optim, loss=loss, metrics=metrics)
+            print('using dice_loss')
+        elif config['num_classes'] == 4:
             # model.compile(optimizer=optim, loss=losses.loss(), metrics=metrics)
+            if config['loss'] == "categorical_crossentropy":
+                model.compile(optimizer=optim, loss="categorical_crossentropy", metrics=metrics)
+                print('using categorical_crossentropy')
+        elif config['num_classes'] == 2:
+            #loss = losses.weighted_categorical_crossentropy([0.02, 0.98])
+            #model.compile(optimizer=optim, loss=loss, metrics=metrics)
+            #print('using weighted categorical_crossentropy')
             model.compile(optimizer=optim, loss="categorical_crossentropy", metrics=metrics)
+            print('using categorical_crossentropy')
         else:
             model.compile(optimizer=optim, loss="binary_crossentropy", metrics=metrics)
+            print('using binary_crossentropy')
+
+        callbacks = utils.callback(flair=[training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
+                                   t1ce=[training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
+                                   t2=[training_path + 'BraTS2021_00002/BraTS2021_00002_t2.nii.gz'],
+                                   mask=[training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
+                                   channels=config['img_channels'],
+                                   subregion=subregion,
+                                   n_slice=80)
 
         history = model.fit(train_img_datagen,
                             steps_per_epoch=steps_per_epoch,
                             epochs=config["epochs"],
                             verbose=1,
-                            callbacks=[utils.callback(segmenting_subregion=subregion),
-                                       WandbCallback()],
+                            callbacks=[callbacks, WandbCallback()],
+                            #callbacks=[callbacks],
                             validation_data=val_img_datagen,
                             validation_steps=val_steps_per_epoch)
 
