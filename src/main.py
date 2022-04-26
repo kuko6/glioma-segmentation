@@ -73,12 +73,12 @@ def main():
     wandb.login(key=wandb_key)
     # wandb.init(project="BraTS2021", entity="kuko")
     wandb.config = {
-        "num_classes": 2,
+        "num_classes": 4,
         "img_channels": 2,
-        "learning_rate": 0.0001, #0.001
+        "learning_rate": 1e-6, #0.0001
         "epochs": 50,
         "batch_size": 2,
-        "loss": "weighted_cross_entropy",
+        "loss": "dice_loss",
         "optimizer": "adam",
         "dataset": "BraTS2021"
     }
@@ -162,8 +162,8 @@ def main():
 
         if config['loss'] == "dice_loss":
             #model.compile(optimizer=optim, loss=losses.dice_loss, metrics=metrics)
-            loss = sm.losses.DiceLoss(class_weights=[0.02, 0.98])
-            model.compile(optimizer=optim, loss=loss, metrics=metrics)
+            #loss = sm.losses.DiceLoss(class_weights=[0.02, 0.98])
+            model.compile(optimizer=optim, loss=losses.dice_loss, metrics=metrics)
             print('using dice_loss')
         elif config['num_classes'] == 4:
             # model.compile(optimizer=optim, loss=losses.loss(), metrics=metrics)

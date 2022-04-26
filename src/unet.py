@@ -61,9 +61,11 @@ def unet_model(img_height, img_width, img_depth, img_channels, num_classes):
     # sigmoid + binary crossentropy (2 labels)
     if num_classes == 1:
         outputs = Conv3D(num_classes, (1, 1, 1), activation='sigmoid')(c9)
+        print('using sigmoid')
     else:
         # softmax + categorical crossentropy (2+ labels)
         outputs = Conv3D(num_classes, (1, 1, 1), activation='softmax')(c9)
+        print('using softmax')
 
     model = Model(inputs=[inputs], outputs=[outputs])
     print("input shape: ", model.input_shape)

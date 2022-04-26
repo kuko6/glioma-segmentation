@@ -16,24 +16,6 @@ def weighted_categorical_crossentropy(weights):
     return wcce
 
 
-# dice loss as defined above for 4 classes
-def dice_coef(y_true, y_pred, smooth=1.0, classes=2):
-    class_num = classes
-    for i in range(class_num):
-        y_true_f = K.flatten(y_true[:,:,:,:,i])
-        y_pred_f = K.flatten(y_pred[:,:,:,:,i])
-        intersection = K.sum(y_true_f * y_pred_f)
-        loss = ((2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth))
-
-        if i == 0:
-            total_loss = loss
-        else:
-            total_loss = total_loss + loss
-    total_loss = total_loss / class_num
-
-    return total_loss
-
-
 # https://github.com/keras-team/keras/issues/9395#issuecomment-379228094
 def tversky_loss(y_true, y_pred):
     alpha = 0.5
@@ -54,6 +36,27 @@ def tversky_loss(y_true, y_pred):
     return Ncl - T
 
 
+'''
+# multilabel 
+def dice_coef(y_true, y_pred, smooth=1.0, classes=4):
+    total_loss = 0
+
+    for i in range(classes):
+        y_true_f = K.flatten(y_true[:,:,:,:,i])
+        y_pred_f = K.flatten(y_pred[:,:,:,:,i])
+        intersection = K.sum(y_true_f * y_pred_f)
+        loss = ((2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth))
+
+        if i == 0:
+            total_loss = loss
+        else:
+            total_loss = total_loss + loss
+    total_loss = total_loss / classes
+
+    return total_loss
+'''
+
+
 # https://github.com/keras-team/keras/issues/9395#issuecomment-379276452
 # binary
 def dice_coef_binary(y_true, y_pred, smooth=1.0):
@@ -62,26 +65,31 @@ def dice_coef_binary(y_true, y_pred, smooth=1.0):
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
-'''
-# multilabel
-def dice_coef(y_true, y_pred, numLabels=2):
+
+# multilabel 2
+def dice_coef(y_true, y_pred, numLabels=4):
     # numLabels = y_true.shape[4]
     dice = 0
     for index in range(numLabels):
         dice += dice_coef_binary(y_true[:, :, :, :, index], y_pred[:, :, :, :, index])
     dice = dice / numLabels
     return dice
-'''
 
-'''
+
 def dice_loss(y_true, y_pred, numLabels=4):
     dice = 0
     for index in range(numLabels):
-        dice += dice_coef_binary(y_true[:, :, :, :, index], y_pred[:, :, :, :, index])
-    dice = dice / numLabels
+        dice -= dice_coef_binary(y_true[:, :, :, :, index], y_pred[:, :, :, :, index])
+        #weight = 1/ sum(y_true[:,:,:,:,index])
+        #dice -= weight * dice_coef(y_true[:,:,:,:,index], y_pred[:,:,:,:,index])
+    return dice
+
+
+'''
+def dice_loss(y_true, y_pred, numLabels=4):
+    dice = dice_coef(y_true, y_pred)
     return 1.0 - dice
 '''
-
 
 def dice_coef2(y_true, y_pred, epsilon=1e-6):
     """
@@ -94,10 +102,6 @@ def dice_coef2(y_true, y_pred, epsilon=1e-6):
     dice_numerator = 2. * K.sum(y_true * y_pred, axis=axis) + epsilon
     dice_denominator = K.sum(y_true * y_true, axis=axis) + K.sum(y_pred * y_pred, axis=axis) + epsilon
     return K.mean((dice_numerator) / (dice_denominator))
-
-
-def dice_loss(y_true, y_pred):
-    return 1.0 - dice_coef2(y_true, y_pred)
 
 
 def dice_coef_necrotic(y_true, y_pred, smooth=1.0):
@@ -140,7 +144,6 @@ def dice_coef_enhancing(y_true, y_pred, epsilon=1e-6):
     intersection = K.sum(K.abs(y_true[:, :, :, :, 3] * y_pred[:, :, :, :, 3]))
     return (2. * intersection) / (
                 K.sum(K.square(y_true[:, :, :, :, 3])) + K.sum(K.square(y_pred[:, :, :, :, 3])) + epsilon)
-
 '''
 
 
