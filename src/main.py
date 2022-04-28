@@ -75,10 +75,10 @@ def main():
     wandb.config = {
         "num_classes": 4,
         "img_channels": 2,
-        "learning_rate": 1e-6, #0.0001
+        "learning_rate": 1e-3, #1e-4, #1e-6
         "epochs": 50,
         "batch_size": 2,
-        "loss": "dice_loss",
+        "loss": "categorical_crossentropy",
         "optimizer": "adam",
         "dataset": "BraTS2021"
     }
@@ -120,23 +120,13 @@ def main():
                                      (128, 128, 128), img_channels=config['img_channels'],
                                      classes=config['num_classes'],
                                      batch_size=config['batch_size'],
-                                     segmenting_subregion=subregion)
+                                     segmenting_subregion=subregion, aug=True)
 
         val_img_datagen = BratsGen(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list,
                                    (128, 128, 128),img_channels=config['img_channels'],
                                    classes=config['num_classes'],
                                    batch_size=config['batch_size'],
-                                   segmenting_subregion=subregion)
-
-        '''
-        train_img_datagen = utils.image_loader(train_flair_list, train_t1ce_list, train_t2_list, train_mask_list,
-                                               batch_size=batch_size, channels=config['img_channels'],
-                                               segmenting_subregion=subregion)
-
-        val_img_datagen = utils.image_loader(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list,
-                                             batch_size=batch_size, channels=config['img_channels'],
-                                             segmenting_subregion=subregion)
-        '''
+                                   segmenting_subregion=subregion, aug=True)
 
         test_generator(train_img_datagen, channels=config['img_channels'])
 

@@ -4,13 +4,14 @@ from tensorflow.keras.utils import to_categorical
 import nibabel as nib
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+import albumentations as A
 import random
 
 
 # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class BratsGen(tf.keras.utils.Sequence):
     def __init__(self, flair_list, t1ce_list, t2_list, mask_list, img_dim=(128, 128, 128),
-                 img_channels=3, classes=4, batch_size=2, segmenting_subregion=0):
+                 img_channels=3, classes=4, batch_size=2, segmenting_subregion=0, aug=False):
         self.batch_size = batch_size
         self.classes = classes
         self.img_channels = img_channels
@@ -20,6 +21,7 @@ class BratsGen(tf.keras.utils.Sequence):
         self.t2_list = t2_list
         self.mask_list = mask_list
         self.segmenting_subregion = segmenting_subregion
+        self.aug = aug
 
     def __len__(self):
         return len(self.flair_list) // self.batch_size
@@ -48,6 +50,38 @@ class BratsGen(tf.keras.utils.Sequence):
         scaler = MinMaxScaler()
         image = scaler.fit_transform(image.reshape(-1, image.shape[-1])).reshape(image.shape)
         return image
+
+    # augmentations
+    def __augmentation(self, flair, t1ce, t2, mask):
+        horizontalFlip = A.Compose([A.HorizontalFlip(p=1)], 
+                                    additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}) # 30%
+        verticalFlip = A.Compose([A.VerticalFlip(p=1)], 
+                                    additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}) # 50%
+        randomRotate = A.Compose([A.Rotate(p=1, limit=(-60, 60), border_mode=cv2.BORDER_CONSTANT)],
+                                    additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}) # 50%
+
+        if random.random() < 0.3:
+            t = horizontalFlip(image=flair, image2=t1ce, image3=t2, mask=mask)
+            flair = t['image']
+            t1ce = t['image2']
+            t2 = t['image3']
+            mask = t['mask']
+
+        if random.random() < 0.5:
+            t = verticalFlip(image=flair, image2=t1ce, image3=t2, mask=mask)
+            flair = t['image']
+            t1ce = t['image2']
+            t2 = t['image3']
+            mask = t['mask']
+
+        if random.random() < 0.6:
+            t = randomRotate(image=flair, image2=t1ce, image3=t2, mask=mask)
+            flair = t['image']
+            t1ce = t['image2']
+            t2 = t['image3']
+            mask = t['mask']
+
+        return flair, t1ce, t2, mask
 
     def __data_generation(self, flair_list, t1ce_list, t2_list, mask_list):
         images = []
@@ -84,6 +118,10 @@ class BratsGen(tf.keras.utils.Sequence):
             t1ce = tmp_t1ce
             t2 = tmp_t2
             mask = tmp_mask
+
+            # augmentations
+            if self.aug:
+                flair, t1ce, t2, mask = self.__augmentation(flair, t1ce, t2, mask)
 
             # ==================== Sequences ==================== #
             # normalise
