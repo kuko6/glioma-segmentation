@@ -1,8 +1,12 @@
 .idea/
-.DS_Store
+.vscode/
+.ipynb_checkpoints/
 
+.DS_Store
 __pycache__/
 models/
+outputs/slices*/
+Hotove_segmentacie/
 
 azureml_environment.json
 azure/config.json
