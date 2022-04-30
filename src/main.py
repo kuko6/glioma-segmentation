@@ -73,12 +73,12 @@ def main():
     wandb.login(key=wandb_key)
     # wandb.init(project="BraTS2021", entity="kuko")
     wandb.config = {
-        "num_classes": 4,
-        "img_channels": 2,
-        "learning_rate": 1e-3, #1e-4, #1e-6
+        "num_classes": 2, # 1, 2, 4
+        "img_channels": 2, # 2, 3
+        "learning_rate": 1e-3, #1e-3, #1e-4, #1e-6
         "epochs": 50,
-        "batch_size": 2,
-        "loss": "categorical_crossentropy",
+        "batch_size": 4, # 2, 4
+        "loss": "categorical_crossentropy", # categorical_crossentropy, dice_loss
         "optimizer": "adam",
         "dataset": "BraTS2021"
     }
@@ -107,8 +107,8 @@ def main():
     if config['num_classes'] == 4:
         subregions = [0]
     else:
-        # subregions = [1, 2, 3]
-        subregions = [2]
+        subregions = [1, 2, 3]
+        #subregions = [2]
 
     for subregion in subregions:
         run = wandb.init(project="BraTS2021",

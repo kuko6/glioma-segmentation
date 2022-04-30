@@ -19,4 +19,5 @@ models/model_3.h5
 models/model_binarycross_2.h5
 models/categorical_crossentropy_20_2ch_sub0.h5
 models/categorical_crossentropy_50_2ch_sub0.h5
+models/categorical_crossentropy_50_2ch_sub0_aug.h5
 models/categorical_crossentropy_50_3ch_sub0.h5

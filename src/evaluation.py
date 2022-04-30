@@ -21,9 +21,9 @@ import losses
 batch_size = 2
 subregion = 0
 classes = 4
-channels = 3
+channels = 2
 n_slice = 80
-model_name = 'models/categorical_crossentropy_50_3ch_sub0.h5'
+model_name = 'models/model_0.h5'
 
 # util function for generating interactive image mask from components
 def wandb_mask(img, true_mask, pred_mask):

@@ -20,7 +20,7 @@ RUN pip install 'matplotlib~=3.5.0' \
                 'azureml-telemetry==1.39.0' \
                 'tensorflow-gpu~=2.7.0' \
                 'onnxruntime-gpu~=1.9.0' \
-                'horovod~=0.23.0'
+                'horovod~=0.23.0' \
                 'keras~=2.7.0' \
                 'matplotlib~=3.5.0' \
                 'nibabel~=3.2.2' \

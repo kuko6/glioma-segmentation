@@ -97,8 +97,8 @@ def dice_coef2(y_true, y_pred, epsilon=1e-6):
          =  2*sum(|A*B|)/(sum(A^2)+sum(B^2))
     ref: https://arxiv.org/pdf/1606.04797v1.pdf
     """
-    # axis = (0, 1)
-    axis = (0, 1, 2, 3)
+    axis = (0, 1)
+    #axis = (0, 1, 2, 3)
     dice_numerator = 2. * K.sum(y_true * y_pred, axis=axis) + epsilon
     dice_denominator = K.sum(y_true * y_true, axis=axis) + K.sum(y_pred * y_pred, axis=axis) + epsilon
     return K.mean((dice_numerator) / (dice_denominator))

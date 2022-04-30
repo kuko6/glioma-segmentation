@@ -102,6 +102,7 @@ class BratsGen(tf.keras.utils.Sequence):
 
             volume_start = 13
             volume_end = 141
+            total_slices = 128
             tmp_flair = np.zeros((128, 128, 128))
             tmp_t1ce = np.zeros((128, 128, 128))
             tmp_t2 = np.zeros((128, 128, 128))
@@ -109,7 +110,7 @@ class BratsGen(tf.keras.utils.Sequence):
 
             # resize the images and mask
             inter = cv2.INTER_NEAREST
-            for i in range(128):
+            for i in range(total_slices):
                 tmp_flair[:, :, i] = cv2.resize(flair[:, :, i + volume_start], (128, 128), interpolation=inter)
                 tmp_t1ce[:, :, i] = cv2.resize(t1ce[:, :, i + volume_start], (128, 128), interpolation=inter)
                 tmp_t2[:, :, i] = cv2.resize(t2[:, :, i + volume_start], (128, 128), interpolation=inter)
