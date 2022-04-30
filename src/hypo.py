@@ -13,9 +13,27 @@ import cv2
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 import re
+import keras.backend as K
 
 import utils
 import losses
+
+def dice_coef_binary(y_true, y_pred, smooth=1.0):
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f)
+    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+
+
+# multilabel 2
+def dice_coef(y_true, y_pred, numLabels=2):
+    # numLabels = y_true.shape[4]
+    dice = 0
+    for index in range(numLabels):
+        dice += dice_coef_binary(y_true[:, :, :, :, index], y_pred[:, :, :, :, index])
+    dice = dice / numLabels
+    return dice
+
 
 def prepare_img8_sagittal(img8_path, mask8_path):
   img8 = nib.load(img8_path).get_fdata()
@@ -105,8 +123,10 @@ def main():
   test_mask4 = utils.load_mask([mask4_path], segmenting_subregion=0)
 
   test_prediction4 = my_model.predict(test_img4)
-  print('img4 dice:', losses.dice_coef(test_mask4, test_prediction4, numLabels=2).numpy())
-  
+  test_prediction4[:,:,:,:,1] += test_prediction4[:,:,:,:,2]
+  test_prediction4[:,:,:,:,1] += test_prediction4[:,:,:,:,3]
+  print('img4 dice:', dice_coef(test_mask4, test_prediction4).numpy())
+
   test_prediction4 = np.argmax(test_prediction4, axis=-1)
   test_mask4 = np.argmax(test_mask4, axis=-1)
 
@@ -115,7 +135,9 @@ def main():
   test_mask26 = utils.load_mask([mask26_path], segmenting_subregion=0)
 
   test_prediction26 = my_model.predict(test_img26)
-  print('img26 dice:', losses.dice_coef(test_mask26, test_prediction26, numLabels=2).numpy())
+  test_prediction26[:,:,:,:,1] += test_prediction26[:,:,:,:,2]
+  test_prediction26[:,:,:,:,1] += test_prediction26[:,:,:,:,3]
+  print('img26 dice:', dice_coef(test_mask26, test_prediction26).numpy())
 
   test_mask26 = np.argmax(test_mask26, axis=-1)
   test_prediction26 = np.argmax(test_prediction26, axis=-1)
@@ -125,7 +147,9 @@ def main():
   #test_img8, test_mask8 = prepare_img8_sagittal(img8_path, mask8_path)
 
   test_prediction8 = my_model.predict(test_img8)
-  print('img8 dice:', losses.dice_coef(test_mask8, test_prediction8, numLabels=2).numpy())
+  test_prediction8[:,:,:,:,1] += test_prediction8[:,:,:,:,2]
+  test_prediction8[:,:,:,:,1] += test_prediction8[:,:,:,:,3]
+  print('img8 dice:', dice_coef(test_mask8, test_prediction8).numpy())
 
   test_mask8 = np.argmax(test_mask8, axis=-1)
   test_prediction8 = np.argmax(test_prediction8, axis=-1)
