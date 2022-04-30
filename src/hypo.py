@@ -17,7 +17,30 @@ import re
 import utils
 import losses
 
-def prepare_img8(img8_path, mask8_path):
+def prepare_img8_sagittal(img8_path, mask8_path):
+  img8 = nib.load(img8_path).get_fdata()
+  mask8 = nib.load(mask8_path).get_fdata()
+
+  volume_start = 40
+  volume_end = 141
+  total_slices = 128
+  tmp_img8 = np.zeros((128, 128, 128))
+  tmp_mask8 = np.zeros((128, 128, 128))
+  # resize the images and mask
+  inter = cv2.INTER_NEAREST
+  for i in range(total_slices):
+      tmp_img8[:, :, i] = cv2.resize(img8[:, :, i + volume_start], (128, 128), interpolation=inter)
+      tmp_mask8[:, :, i] = cv2.resize(mask8[:, :, i + volume_start], (128, 128), interpolation=inter)
+  #tmp_img8 = np.swapaxes(tmp_img8, 1, 2)
+  tmp_img8 = utils.normalise(tmp_img8)
+  #tmp_mask8 = np.swapaxes(tmp_mask8, 1, 2)
+
+  image = np.stack([tmp_img8, tmp_img8], axis=3)
+  mask = to_categorical(tmp_mask8, num_classes=4)
+  return np.array([image]), np.array([mask])
+
+
+def prepare_img8_axial(img8_path, mask8_path):
   img8 = nib.load(img8_path).get_fdata()
   mask8 = nib.load(mask8_path).get_fdata()
 
@@ -33,6 +56,7 @@ def prepare_img8(img8_path, mask8_path):
       tmp_mask8[:, i, :] = cv2.resize(mask8[:, i + volume_start, :], (128, 128), interpolation=inter)
   tmp_img8 = np.swapaxes(tmp_img8, 1, 2)
   tmp_img8 = utils.normalise(tmp_img8)
+  tmp_mask8 = np.swapaxes(tmp_mask8, 1, 2)
 
   image = np.stack([tmp_img8, tmp_img8], axis=3)
   mask = to_categorical(tmp_mask8, num_classes=4)
@@ -60,7 +84,7 @@ def main():
   img26_path = brains_path + '26/t1_mprage_tra_iso_ce.nii'
   mask26_path = brains_path + '26/Segmentation-label.nii'
 
-  # tieto nemaju taky dobry tvar
+  # tieto maju iny tvar
   img8_path = brains_path + '8/t1_mpr_sag_p2_iso.nii'
   mask8_path = brains_path + '8/Segmentation-label.nii'
 
@@ -73,7 +97,7 @@ def main():
     'dice_coef_enhancing': losses.dice_coef_enhancing
   }
 
-  model_name = 'models/model_0.h5'
+  model_name = 'models/categorical_crossentropy_50_2ch_sub0_aug.h5'
   my_model = tf.keras.models.load_model(model_name, custom_objects=custom_objects, compile=False)
 
   # Img 4
@@ -81,7 +105,7 @@ def main():
   test_mask4 = utils.load_mask([mask4_path], segmenting_subregion=0)
 
   test_prediction4 = my_model.predict(test_img4)
-  print('img4 dice:', losses.dice_coef(test_mask4, test_prediction4).numpy())
+  print('img4 dice:', losses.dice_coef(test_mask4, test_prediction4, numLabels=2).numpy())
   
   test_prediction4 = np.argmax(test_prediction4, axis=-1)
   test_mask4 = np.argmax(test_mask4, axis=-1)
@@ -91,16 +115,17 @@ def main():
   test_mask26 = utils.load_mask([mask26_path], segmenting_subregion=0)
 
   test_prediction26 = my_model.predict(test_img26)
-  print('img26 dice:', losses.dice_coef(test_mask26, test_prediction26).numpy())
+  print('img26 dice:', losses.dice_coef(test_mask26, test_prediction26, numLabels=2).numpy())
 
   test_mask26 = np.argmax(test_mask26, axis=-1)
   test_prediction26 = np.argmax(test_prediction26, axis=-1)
 
   # Img 8
-  test_img8, test_mask8 = prepare_img8(img8_path, mask8_path)
+  test_img8, test_mask8 = prepare_img8_axial(img8_path, mask8_path)
+  #test_img8, test_mask8 = prepare_img8_sagittal(img8_path, mask8_path)
 
   test_prediction8 = my_model.predict(test_img8)
-  print('img8 dice:', losses.dice_coef(test_mask8, test_prediction8).numpy())
+  print('img8 dice:', losses.dice_coef(test_mask8, test_prediction8, numLabels=2).numpy())
 
   test_mask8 = np.argmax(test_mask8, axis=-1)
   test_prediction8 = np.argmax(test_prediction8, axis=-1)
