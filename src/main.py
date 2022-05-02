@@ -60,6 +60,7 @@ def test_generator(data_gen, channels):
         fig.savefig(f'outputs/test.png')
     plt.close(fig)
 
+
 def main():
     # print(help('modules'))
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
@@ -73,12 +74,12 @@ def main():
     wandb.login(key=wandb_key)
     # wandb.init(project="BraTS2021", entity="kuko")
     wandb.config = {
-        "num_classes": 2, # 1, 2, 4
-        "img_channels": 2, # 2, 3
-        "learning_rate": 1e-3, #1e-3, #1e-4, #1e-6
+        "num_classes": 4, # 1, 2, 4
+        "img_channels": 3, # 2, 3
+        "learning_rate": 1e-4, #1e-3, #1e-4, #1e-6
         "epochs": 50,
-        "batch_size": 4, # 2, 4
-        "loss": "categorical_crossentropy", # categorical_crossentropy, dice_loss
+        "batch_size": 2, # 2, 4
+        "loss": "categorical_crossentropy", # categorical_crossentropy, dice_loss, binary_crossentropy, binary_dice_loss
         "optimizer": "adam",
         "dataset": "BraTS2021"
     }
@@ -111,34 +112,52 @@ def main():
         #subregions = [2]
 
     for subregion in subregions:
-        run = wandb.init(project="BraTS2021",
-                         name=f"{config['loss']}_{config['epochs']}_{config['img_channels']}ch_sub{subregion}",
-                         entity="kuko",
-                         reinit=True)
+        run = wandb.init(
+            project="BraTS2021",
+            name=f"{config['loss']}_{config['epochs']}_{config['img_channels']}ch_sub{subregion}",
+            entity="kuko",
+            reinit=True
+        )
 
-        train_img_datagen = BratsGen(train_flair_list, train_t1ce_list, train_t2_list, train_mask_list,
-                                     (128, 128, 128), img_channels=config['img_channels'],
-                                     classes=config['num_classes'],
-                                     batch_size=config['batch_size'],
-                                     segmenting_subregion=subregion, aug=True)
+        train_img_datagen = BratsGen(
+            train_flair_list, train_t1ce_list, train_t2_list, train_mask_list,
+            img_dim=(128, 128, 128), 
+            img_channels=config['img_channels'],
+            classes=config['num_classes'],
+            batch_size=config['batch_size'],
+            segmenting_subregion=subregion, aug=True
+        )
 
-        val_img_datagen = BratsGen(val_flair_list, val_t1ce_list, val_t2_list, val_mask_list,
-                                   (128, 128, 128),img_channels=config['img_channels'],
-                                   classes=config['num_classes'],
-                                   batch_size=config['batch_size'],
-                                   segmenting_subregion=subregion, aug=True)
+        val_img_datagen = BratsGen(
+            val_flair_list, val_t1ce_list, val_t2_list, val_mask_list,
+            img_dim=(128, 128, 128), 
+            img_channels=config['img_channels'],
+            classes=config['num_classes'],
+            batch_size=config['batch_size'],
+            segmenting_subregion=subregion, aug=True
+        )
 
         test_generator(train_img_datagen, channels=config['img_channels'])
 
         if config['num_classes'] == 4:
-            metrics = [sm.metrics.IOUScore(threshold=0.5),
-                       tf.keras.metrics.MeanIoU(num_classes=4),
-                       losses.dice_coef, losses.dice_coef2, losses.dice_coef_necrotic,
-                       losses.dice_coef_edema, losses.dice_coef_enhancing]
+            metrics = [
+                sm.metrics.IOUScore(threshold=0.5),
+                tf.keras.metrics.MeanIoU(num_classes=4),
+                losses.dice_coef, losses.dice_coef2, losses.dice_coef_necrotic,
+                losses.dice_coef_edema, losses.dice_coef_enhancing
+            ]
+        elif config['num_classes'] == 2:
+            metrics = [
+                sm.metrics.IOUScore(threshold=0.5),
+                tf.keras.metrics.MeanIoU(num_classes=2),
+                losses.dice_coef, losses.dice_coef2
+            ]
         else:
-            metrics = [sm.metrics.IOUScore(threshold=0.5),
-                       tf.keras.metrics.MeanIoU(num_classes=2),
-                       losses.dice_coef, losses.dice_coef2]
+            metrics = [
+                sm.metrics.IOUScore(threshold=0.5),
+                tf.keras.metrics.MeanIoU(num_classes=2),
+                losses.dice_coef_binary, losses.dice_coef2
+            ]
 
         LR = config["learning_rate"]
         optim = tf.keras.optimizers.Adam(LR)
@@ -147,8 +166,11 @@ def main():
         #steps_per_epoch = 10
         #val_steps_per_epoch = 2
 
-        model = unet.unet_model(img_height=128, img_width=128, img_depth=128,
-                                img_channels=config["img_channels"], num_classes=config["num_classes"])
+        model = unet.unet_model(
+            img_height=128, img_width=128, img_depth=128, 
+            img_channels=config["img_channels"], 
+            num_classes=config["num_classes"]
+        )
 
         if config['loss'] == "dice_loss":
             #model.compile(optimizer=optim, loss=losses.dice_loss, metrics=metrics)
@@ -169,23 +191,29 @@ def main():
         else:
             model.compile(optimizer=optim, loss="binary_crossentropy", metrics=metrics)
             print('using binary_crossentropy')
+            #model.compile(optimizer=optim, loss=losses.dice_coef_binary_loss, metrics=metrics)
+            #print('using binary_dice_loss')
 
-        callbacks = utils.callback(flair=[training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
-                                   t1ce=[training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
-                                   t2=[training_path + 'BraTS2021_00002/BraTS2021_00002_t2.nii.gz'],
-                                   mask=[training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
-                                   channels=config['img_channels'],
-                                   subregion=subregion,
-                                   n_slice=80)
+        callbacks = utils.callback(
+            flair=[training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
+            t1ce=[training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
+            t2=[training_path + 'BraTS2021_00002/BraTS2021_00002_t2.nii.gz'],
+            mask=[training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
+            channels=config['img_channels'],
+            subregion=subregion,
+            n_slice=80,
+            classes=config['num_classes']
+        )
 
-        history = model.fit(train_img_datagen,
-                            steps_per_epoch=steps_per_epoch,
-                            epochs=config["epochs"],
-                            verbose=1,
-                            callbacks=[callbacks, WandbCallback()],
-                            #callbacks=[callbacks],
-                            validation_data=val_img_datagen,
-                            validation_steps=val_steps_per_epoch)
+        history = model.fit(
+            train_img_datagen,
+            steps_per_epoch=steps_per_epoch,
+            epochs=config["epochs"],
+            verbose=1,
+            callbacks=[callbacks, WandbCallback()],
+            validation_data=val_img_datagen,
+            validation_steps=val_steps_per_epoch
+        )
 
         model.save(f'outputs/model_{subregion}.h5')
 

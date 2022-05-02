@@ -59,7 +59,7 @@ def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
     #print('original shape: ', test_prediction.shape)
     #print('new shape: ', test_prediction_argmax.shape)
 
-    test_mask = utils.load_mask([mask], segmenting_subregion=0)
+    test_mask = utils.load_mask([mask], segmenting_subregion=0, classes=classes)
     test_mask_argmax = np.argmax(test_mask, axis=-1)
     #print('mask shape: ', test_mask.shape)
     # print(test_mask.dtype)
@@ -138,7 +138,7 @@ def model_eval(my_model, flair_list, t1ce_list, t2_list, mask_list):
     for flair_name, t1ce_name, t2_name, mask_name in zip(flair_list, t1ce_list, t2_list, mask_list):
         # test_img = np.load(img_list[i])
         test_img = utils.load_img([flair_name], [t1ce_name], [t2_name], img_channels=channels)
-        test_mask = utils.load_mask([mask_name], segmenting_subregion=0)
+        test_mask = utils.load_mask([mask_name], segmenting_subregion=0, classes=classes)
         # test_mask = np.argmax(test_mask, axis=-1)
 
         # test_img_input = np.expand_dims(test_img, axis=0)
@@ -270,7 +270,7 @@ def main():
         print('new shape: ', test_prediction_argmax.shape)
 
         test_mask = utils.load_mask([training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
-                                    segmenting_subregion=0)
+                                    segmenting_subregion=0, classes=classes)
         test_mask_argmax = np.argmax(test_mask, axis=-1)
         print('mask shape: ', test_mask.shape)
         print(test_mask.dtype)
@@ -305,7 +305,7 @@ def main():
         # print('new shape: ', test_prediction_argmax.shape)
 
         test_mask = utils.load_mask([training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
-                                    segmenting_subregion=2)
+                                    segmenting_subregion=2, classes=classes)
         test_mask_argmax = np.argmax(test_mask, axis=-1)
         print('mask shape: ', test_mask.shape)
 

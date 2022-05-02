@@ -75,7 +75,7 @@ def load_img(flair_list, t1ce_list, t2_list, img_channels):
     return images
 
 
-def load_mask(mask_list, segmenting_subregion=0):
+def load_mask(mask_list, segmenting_subregion=0, classes=4):
     images = []
     for mask_name in mask_list:
         mask = nib.load(mask_name).get_fdata()
@@ -115,9 +115,10 @@ def load_mask(mask_list, segmenting_subregion=0):
 
         if segmenting_subregion == 0:
             mask = to_categorical(mask, num_classes=4)
-        else:
+        elif classes == 2:
             mask = to_categorical(mask, num_classes=2)
-            #mask = tf.one_hot(mask, 1, on_value=0, off_value=1)
+        elif classes == 1:
+            mask = tf.one_hot(mask, 1, on_value=0, off_value=1)
 
         images.append(mask)
 
@@ -126,7 +127,7 @@ def load_mask(mask_list, segmenting_subregion=0):
     return images
 
 
-def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, channels=3, segmenting_subregion=0):
+def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, channels=3, segmenting_subregion=0, classes=4):
     img_len = len(flair_list)
 
     # keras needs the generator infinite
@@ -138,7 +139,7 @@ def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, channels
             limit = min(batch_end, img_len)
             x = load_img(flair_list[batch_start:limit], t1ce_list[batch_start:limit], t2_list[batch_start:limit],
                          channels)
-            y = load_mask(mask_list[batch_start:limit], segmenting_subregion)
+            y = load_mask(mask_list[batch_start:limit], segmenting_subregion, classes)
 
             yield (x, y)  # a tuple with two numpy arrays with batch_size samples
 
@@ -146,7 +147,7 @@ def image_loader(flair_list, t1ce_list, t2_list, mask_list, batch_size, channels
             batch_end += batch_size
 
 
-def show_predictions(my_model, flair, t1ce, t2, mask, channels, subregion, n_slice, epoch):
+def show_predictions(my_model, flair, t1ce, t2, mask, channels, subregion, n_slice, epoch, classes=4):
     test_img = load_img(flair, t1ce, t2, img_channels=channels)
     test_prediction = my_model.predict(test_img)
     # print(np.unique(test_prediction))
@@ -155,7 +156,7 @@ def show_predictions(my_model, flair, t1ce, t2, mask, channels, subregion, n_sli
     # print('original shape: ', test_prediction.shape)
     # print('new shape: ', test_prediction_argmax.shape)
 
-    test_mask = load_mask(mask, segmenting_subregion=subregion)
+    test_mask = load_mask(mask, segmenting_subregion=subregion, classes=classes)
     test_mask_argmax = np.argmax(test_mask, axis=-1)
     # print('mask shape: ', test_mask.shape)
     # print(test_mask.dtype)
@@ -200,8 +201,8 @@ def show_predictions(my_model, flair, t1ce, t2, mask, channels, subregion, n_sli
            ndimage.rotate(test_prediction_argmax[0][:, :, n_slice], 270)
 
 
-class prediction_callback(tf.keras.callbacks.Callback):
-    def __init__(self, flair, t1ce, t2, mask, channels, subregion, n_slice):
+class PredictionCallback(tf.keras.callbacks.Callback):
+    def __init__(self, flair, t1ce, t2, mask, channels, subregion, n_slice, classes=4):
         self.flair = flair
         self.t1ce = t1ce
         self.t2 = t2
@@ -209,6 +210,7 @@ class prediction_callback(tf.keras.callbacks.Callback):
         self.channels = channels
         self.subregion = subregion
         self.n_slice = n_slice
+        self.classes = classes
         if subregion == 0:
             self.labels = {0: 'background', 1: 'necrotic', 2: 'edema', 3: 'enhancing'}
         elif subregion == 1:
@@ -232,22 +234,27 @@ class prediction_callback(tf.keras.callbacks.Callback):
         })
 
     def on_epoch_end(self, epoch, logs=None):
-        image, true_mask, pred_mask = show_predictions(self.model, self.flair, self.t1ce, self.t2, self.mask,
-                                                       self.channels, self.subregion, self.n_slice, epoch)
+        image, true_mask, pred_mask = show_predictions(
+            self.model, self.flair, self.t1ce, self.t2, self.mask,
+            self.channels, self.subregion, self.n_slice, epoch, self.classes
+        )
+
         # mask = self.wandb_mask(image.numpy(), pred_mask.numpy(), true_mask.numpy())
         mask = self.wandb_mask(image, true_mask, pred_mask)
         wandb.log({"predictions": mask}, commit=False)
 
 
-def callback(flair, t1ce, t2, mask, channels, subregion, n_slice):
+def callback(flair, t1ce, t2, mask, channels, subregion, n_slice, classes):
     csv_logger = CSVLogger(f'outputs/training_{subregion}.log', separator=',', append=False)
     '''
     callbacks = [ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
                  csv_logger]
     '''
-    callbacks = [EarlyStopping(monitor='loss', min_delta=0, patience=5, verbose=1, mode='auto'),
-                 ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
-                 prediction_callback(flair, t1ce, t2, mask, channels, subregion, n_slice),
-                 csv_logger]
+    callbacks = [
+        EarlyStopping(monitor='loss', min_delta=0, patience=5, verbose=1, mode='auto'),
+        ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
+        PredictionCallback(flair, t1ce, t2, mask, channels, subregion, n_slice, classes),
+        csv_logger
+    ]
 
     return callbacks

@@ -158,9 +158,10 @@ class BratsGen(tf.keras.utils.Sequence):
             # encode
             if self.segmenting_subregion == 0:
                 mask = to_categorical(mask, num_classes=4)
-            else:
+            elif self.classes == 2:
                 mask = to_categorical(mask, num_classes=2)
-                # mask = tf.one_hot(mask, 1, on_value=0, off_value=1)
+            elif self.classes == 1:
+                mask = tf.one_hot(mask, 1, on_value=0, off_value=1)
             # mask = mask.astype(np.uint8)
 
             images.append(image)
