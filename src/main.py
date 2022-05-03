@@ -76,7 +76,7 @@ def main():
     wandb.config = {
         "num_classes": 4, # 1, 2, 4
         "img_channels": 3, # 2, 3
-        "learning_rate": 1e-4, #1e-3, #1e-4, #1e-6
+        "learning_rate": 1e-4, #1e-3, 1e-4, 1e-5, 1e-6
         "epochs": 50,
         "batch_size": 2, # 2, 4
         "loss": "categorical_crossentropy", # categorical_crossentropy, dice_loss, binary_crossentropy, binary_dice_loss
@@ -143,14 +143,14 @@ def main():
             metrics = [
                 sm.metrics.IOUScore(threshold=0.5),
                 tf.keras.metrics.MeanIoU(num_classes=4),
-                losses.dice_coef, losses.dice_coef2, losses.dice_coef_necrotic,
+                losses.dice_coef(classes=config['num_classes']), losses.dice_coef2, losses.dice_coef_necrotic,
                 losses.dice_coef_edema, losses.dice_coef_enhancing
             ]
         elif config['num_classes'] == 2:
             metrics = [
                 sm.metrics.IOUScore(threshold=0.5),
                 tf.keras.metrics.MeanIoU(num_classes=2),
-                losses.dice_coef, losses.dice_coef2
+                losses.dice_coef(classes=config['num_classes']), losses.dice_coef2
             ]
         else:
             metrics = [

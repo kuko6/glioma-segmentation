@@ -195,6 +195,7 @@ def show_predictions(my_model, flair, t1ce, t2, mask, channels, subregion, n_sli
         # fig.savefig(f'outputs/test.png')
 
     fig.savefig(f'outputs/prediction_epoch{epoch}.png')
+    plt.close()
 
     return ndimage.rotate(test_img[0][:, :, n_slice, 0], 270), \
            ndimage.rotate(test_mask_argmax[0][:, :, n_slice], 270), \

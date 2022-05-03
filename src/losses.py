@@ -1,3 +1,4 @@
+import re
 import keras.backend as K
 from segmentation_models_3D import losses
 import numpy as np
@@ -66,15 +67,25 @@ def dice_coef_binary(y_true, y_pred, smooth=1.0):
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
 
-# multilabel 2
-def dice_coef(y_true, y_pred, numLabels=4):
+def dice_coef(classes=4):
+    def dsc(y_true, y_pred):
+        dice = 0
+        for index in range(classes):
+            dice += dice_coef_binary(y_true[:, :, :, :, index], y_pred[:, :, :, :, index])
+        dice = dice / classes
+        return dice
+    return dsc
+
+'''
+# multilabel
+def dice_coef(y_true, y_pred, numLabels=2):
     # numLabels = y_true.shape[4]
     dice = 0
     for index in range(numLabels):
         dice += dice_coef_binary(y_true[:, :, :, :, index], y_pred[:, :, :, :, index])
     dice = dice / numLabels
     return dice
-
+'''
 
 def dice_loss(y_true, y_pred, numLabels=4):
     dice = 0
