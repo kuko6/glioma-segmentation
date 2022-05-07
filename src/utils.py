@@ -253,7 +253,7 @@ def callback(flair, t1ce, t2, mask, channels, subregion, n_slice, classes):
     '''
     callbacks = [
         EarlyStopping(monitor='loss', min_delta=0, patience=5, verbose=1, mode='auto'),
-        ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
+        #ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
         PredictionCallback(flair, t1ce, t2, mask, channels, subregion, n_slice, classes),
         csv_logger
     ]

@@ -77,7 +77,7 @@ def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
     # test_mask = tf.cast(test_mask, tf.float32)
     # print(test_mask.dtype)
 
-    print('dice:', losses.dice_coef(classes=classes)(test_mask, test_prediction).numpy())
+    print('dice:', losses.dice_coef_multilabel(classes=classes)(test_mask, test_prediction).numpy())
     if classes == 4:
         print('dice edema:', losses.dice_coef_edema(test_mask, test_prediction).numpy())
         print('dice necrotic:', losses.dice_coef_necrotic(test_mask, test_prediction).numpy())
@@ -141,7 +141,7 @@ def model_eval(my_model, flair_list, t1ce_list, t2_list, mask_list):
         test_prediction = my_model.predict(test_img)
         # test_prediction = np.argmax(test_prediction, axis=-1)
 
-        dice_list.append(losses.dice_coef(classes=classes)(test_mask, test_prediction).numpy())
+        dice_list.append(losses.dice_coef_multilabel(classes=classes)(test_mask, test_prediction).numpy())
         if classes == 4:
             necrotic_list.append(losses.dice_coef_necrotic(test_mask, test_prediction).numpy())
             edema_list.append(losses.dice_coef_edema(test_mask, test_prediction).numpy())
@@ -214,7 +214,7 @@ def main():
     if classes == 4:
         custom_objects = {
             'iou_score': sm.metrics.IOUScore(threshold=0.5),
-            'dice_coef': losses.dice_coef,
+            'dice_coef': losses.dice_coef_multilabel,
             'dice_coef2': losses.dice_coef2,
             'dice_coef_edema': losses.dice_coef_edema,
             'dice_coef_necrotic': losses.dice_coef_necrotic,
@@ -223,7 +223,7 @@ def main():
     else:
         custom_objects = {
             'iou_score': sm.metrics.IOUScore(threshold=0.5),
-            'dice_coef': losses.dice_coef,
+            'dice_coef': losses.dice_coef_multilabel,
             'dice_coef2': losses.dice_coef2
         }
 

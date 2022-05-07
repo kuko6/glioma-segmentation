@@ -108,7 +108,7 @@ def main():
 
   custom_objects = {
     'iou_score': sm.metrics.IOUScore(threshold=0.5),
-    'dice_coef': losses.dice_coef,
+    'dice_coef': losses.dice_coef_multilabel,
     'dice_coef2': losses.dice_coef2,
     'dice_coef_edema': losses.dice_coef_edema,
     'dice_coef_necrotic': losses.dice_coef_necrotic,

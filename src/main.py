@@ -143,14 +143,14 @@ def main():
             metrics = [
                 sm.metrics.IOUScore(threshold=0.5),
                 tf.keras.metrics.MeanIoU(num_classes=4),
-                losses.dice_coef(classes=config['num_classes']), losses.dice_coef2, losses.dice_coef_necrotic,
+                losses.dice_coef_multilabel(classes=config['num_classes']), losses.dice_coef2, losses.dice_coef_necrotic,
                 losses.dice_coef_edema, losses.dice_coef_enhancing
             ]
         elif config['num_classes'] == 2:
             metrics = [
                 sm.metrics.IOUScore(threshold=0.5),
                 tf.keras.metrics.MeanIoU(num_classes=2),
-                losses.dice_coef(classes=config['num_classes']), losses.dice_coef2
+                losses.dice_coef_multilabel(classes=config['num_classes']), losses.dice_coef2
             ]
         else:
             metrics = [

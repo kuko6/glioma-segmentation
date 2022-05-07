@@ -53,25 +53,25 @@ class BratsGen(tf.keras.utils.Sequence):
 
     # augmentations
     def __augmentation(self, flair, t1ce, t2, mask):
-        horizontalFlip = A.Compose(
-            [A.HorizontalFlip(p=1)], 
-            additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}
-        ) # 30%
+        # horizontalFlip = A.Compose(
+        #     [A.HorizontalFlip(p=1)], 
+        #     additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}
+        # ) # 30%
         verticalFlip = A.Compose(
             [A.VerticalFlip(p=1)], 
             additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}
         ) # 50%
         randomRotate = A.Compose(
-            [A.Rotate(p=1, limit=(-60, 60), border_mode=cv2.BORDER_CONSTANT)],
+            [A.Rotate(p=1, limit=(-10, 10), border_mode=cv2.BORDER_CONSTANT)],
             additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}
         ) # 50%
 
-        if random.random() < 0.3:
-            t = horizontalFlip(image=flair, image2=t1ce, image3=t2, mask=mask)
-            flair = t['image']
-            t1ce = t['image2']
-            t2 = t['image3']
-            mask = t['mask']
+        # if random.random() < 0.3:
+        #     t = horizontalFlip(image=flair, image2=t1ce, image3=t2, mask=mask)
+        #     flair = t['image']
+        #     t1ce = t['image2']
+        #     t2 = t['image3']
+        #     mask = t['mask']
 
         if random.random() < 0.5:
             t = verticalFlip(image=flair, image2=t1ce, image3=t2, mask=mask)

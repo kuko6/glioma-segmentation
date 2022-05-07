@@ -66,15 +66,15 @@ def dice_coef_binary(y_true, y_pred, smooth=1.0):
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
-
-def dice_coef(classes=4):
-    def dsc(y_true, y_pred):
+#dsc
+def dice_coef_multilabel(classes=4):
+    def dice_coef(y_true, y_pred):
         dice = 0
         for index in range(classes):
             dice += dice_coef_binary(y_true[:, :, :, :, index], y_pred[:, :, :, :, index])
         dice = dice / classes
         return dice
-    return dsc
+    return dice_coef
 
 '''
 # multilabel
