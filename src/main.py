@@ -37,6 +37,7 @@ def test_generator(data_gen, channels):
     print('img shape: ', img.shape)
     print('mask shape: ', mask.shape)
     mask = np.argmax(mask, axis=-1)
+    custom_cmap = utils.get_custom_cmap()
 
     if channels == 3:
         fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 10))
@@ -46,7 +47,7 @@ def test_generator(data_gen, channels):
         ax2.set_title('Image t1ce')
         ax3.imshow(ndimage.rotate(img[0][:, :, 80, 2], 270), cmap='gray')
         ax3.set_title('Image t2')
-        ax4.imshow(ndimage.rotate(mask[0][:, :, 80], 270))
+        ax4.imshow(ndimage.rotate(mask[0][:, :, 80], 270), cmap=custom_cmap)
         ax4.set_title('Mask')
         fig.savefig(f'outputs/test.png')
     else: # 2 channels
@@ -55,7 +56,7 @@ def test_generator(data_gen, channels):
         ax1.set_title('Image flair')
         ax2.imshow(ndimage.rotate(img[0][:, :, 80, 1], 270), cmap='gray')
         ax2.set_title('Image t1ce')
-        ax3.imshow(ndimage.rotate(mask[0][:, :, 80], 270))
+        ax3.imshow(ndimage.rotate(mask[0][:, :, 80], 270), cmap=custom_cmap)
         ax3.set_title('Mask')
         fig.savefig(f'outputs/test.png')
     plt.close(fig)
@@ -74,7 +75,7 @@ def main():
     wandb.login(key=wandb_key)
     # wandb.init(project="BraTS2021", entity="kuko")
     wandb.config = {
-        "num_classes": 4, # 1, 2, 4
+        "num_classes": 2, # 1, 2, 4
         "img_channels": 3, # 2, 3
         "learning_rate": 1e-4, #1e-3, 1e-4, 1e-5, 1e-6
         "epochs": 50,
@@ -217,12 +218,6 @@ def main():
 
         model.save(f'outputs/model_{subregion}.h5')
 
-        # Saves history as dictionary
-        ''''
-        with open(f'outputs/train_history_{subregion}', 'wb') as file_pi:
-            pickle.dump(history.history, file_pi)
-        '''
-
         hist_df = pd.DataFrame(history.history)
 
         # Saves history as .csv
@@ -233,13 +228,6 @@ def main():
         run.finish()
 
     # wandb.finish()
-    '''
-    training_files = list_files(training_path)
-    validation_files = list_files(validation)
-    testing_files = list_files(testing)
-
-    print(f'training_path: {len(training_files)}, validation: {len(validation_files)}, testing: {len(testing_files)}')
-    '''
 
 
 if __name__ == '__main__':

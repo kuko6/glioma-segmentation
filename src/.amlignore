@@ -15,10 +15,14 @@ separate_subregion_training/
 models/model_0.h5
 models/brats_3d_2ch_cropped.h5
 models/model-best.h5
+
 models/separate/*
 models/model_binarycross_2.h5
+
 models/categorical_crossentropy_20_2ch_sub0.h5
 models/categorical_crossentropy_50_2ch_sub0.h5
 models/categorical_crossentropy_50_2ch_sub0_aug.h5
+models/categorical_crossentropy_50_2ch_sub0_aug_lr-4_no_decay.h5
+
 models/categorical_crossentropy_50_3ch_sub0.h5
 models/categorical_crossentropy_50_3ch_sub0_aug.h5

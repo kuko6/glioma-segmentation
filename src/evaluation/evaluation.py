@@ -22,9 +22,9 @@ import losses
 batch_size = 1
 subregion = 0
 classes = 4
-channels = 3
+channels = 2
 n_slice = 80
-model_name = 'models/model_0.h5'
+model_name = 'models/model_test.h5'
 
 def hausdorff_distance(y_true, y_pred, classes=[1, 2, 3]):
     haussdorf_dist = 0
@@ -83,6 +83,8 @@ def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
         print('dice necrotic:', losses.dice_coef_necrotic(test_mask, test_prediction).numpy())
         print('dice enhancing:', losses.dice_coef_enhancing(test_mask, test_prediction).numpy())
 
+    custom_cmap = utils.get_custom_cmap()
+
     volume_start = 20
     volume_end = 126 # 125
     step = 2 # 5
@@ -91,37 +93,46 @@ def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
             fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(1, 5, figsize=(20, 10))
             ax1.imshow(ndimage.rotate(test_img[0][:, :, i, 0], 270), cmap='gray')
             ax1.set_title('Image flair')
+            ax1.axis('off')
             ax2.imshow(ndimage.rotate(test_img[0][:, :, i, 1], 270), cmap='gray')
             ax2.set_title('Image t1ce')
+            ax2.axis('off')
             ax3.imshow(ndimage.rotate(test_img[0][:, :, i, 2], 270), cmap='gray')
             ax3.set_title('Image t2')
-            ax4.imshow(ndimage.rotate(test_mask_argmax[0][:, :, i], 270))
+            ax3.axis('off')
+            ax4.imshow(ndimage.rotate(test_mask_argmax[0][:, :, i], 270), cmap=custom_cmap)
             ax4.set_title('Mask')
-            ax5.imshow(ndimage.rotate(test_prediction_argmax[0][:, :, i], 270))
+            ax4.axis('off')
+            ax5.imshow(ndimage.rotate(test_prediction_argmax[0][:, :, i], 270), cmap=custom_cmap)
             ax5.set_title('Prediction')
+            ax5.axis('off')
             #fig.savefig(f'outputs/test.png')
         else:
             fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 10))
             ax1.imshow(ndimage.rotate(test_img[0][:, :, i, 0], 270), cmap='gray')
             ax1.set_title('Image flair')
+            ax1.axis('off')
             ax2.imshow(ndimage.rotate(test_img[0][:, :, i, 1], 270), cmap='gray')
             ax2.set_title('Image t1ce')
-            ax3.imshow(ndimage.rotate(test_mask_argmax[0][:, :, i], 270))
+            ax2.axis('off')
+            ax3.imshow(ndimage.rotate(test_mask_argmax[0][:, :, i], 270), cmap=custom_cmap)
             ax3.set_title('Mask')
-            ax4.imshow(ndimage.rotate(test_prediction_argmax[0][:, :, i], 270))
+            ax3.axis('off')
+            ax4.imshow(ndimage.rotate(test_prediction_argmax[0][:, :, i], 270), cmap=custom_cmap)
             ax4.set_title('Prediction')
+            ax4.axis('off')
             #fig.savefig(f'outputs/test.png')
 
         fig.savefig(f'outputs/{subdir + img_name}_{i}.png')
         plt.close()
 
-        flair = ndimage.rotate(test_img[0][:, :, i, 0], 270)
-        t1ce = ndimage.rotate(test_img[0][:, :, i, 1], 270)
-        true_mask = ndimage.rotate(test_mask_argmax[0][:, :, i], 270)
-        pred_mask = ndimage.rotate(test_prediction_argmax[0][:, :, i], 270)
+        # flair = ndimage.rotate(test_img[0][:, :, i, 0], 270)
+        # t1ce = ndimage.rotate(test_img[0][:, :, i, 1], 270)
+        # true_mask = ndimage.rotate(test_mask_argmax[0][:, :, i], 270)
+        # pred_mask = ndimage.rotate(test_prediction_argmax[0][:, :, i], 270)
 
-        mask = wandb_mask(flair, true_mask, pred_mask)
-        wandb.log({f"{subdir}": mask}, step=counter+i)
+        # mask = wandb_mask(flair, true_mask, pred_mask)
+        # wandb.log({f"{subdir}": mask}, step=counter+i)
 
 
 def model_eval(my_model, flair_list, t1ce_list, t2_list, mask_list):
@@ -135,9 +146,7 @@ def model_eval(my_model, flair_list, t1ce_list, t2_list, mask_list):
         # test_img = np.load(img_list[i])
         test_img = utils.load_img([flair_name], [t1ce_name], [t2_name], img_channels=channels)
         test_mask = utils.load_mask([mask_name], segmenting_subregion=subregion, classes=classes)
-        # test_mask = np.argmax(test_mask, axis=-1)
-
-        # test_img_input = np.expand_dims(test_img, axis=0)
+        
         test_prediction = my_model.predict(test_img)
         # test_prediction = np.argmax(test_prediction, axis=-1)
 
@@ -190,12 +199,12 @@ def main():
     args = parser.parse_args()
 
     wandb_key = args.wandb
-    wandb.login(key=wandb_key)
+    # wandb.login(key=wandb_key)
 
-    run = wandb.init(project="BraTS2021",
-                     name=f"evaluation_{model_name}",
-                     entity="kuko",
-                     reinit=True)
+    # run = wandb.init(project="BraTS2021-evaluation",
+    #                  name=f"evaluation_{model_name}",
+    #                  entity="kuko",
+    #                  reinit=True)
 
     data = args.data_path
     print(os.listdir(data))
@@ -228,9 +237,10 @@ def main():
         }
 
     my_model = tf.keras.models.load_model(model_name, custom_objects=custom_objects, compile=False)
+    
     model_eval(my_model, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
 
-    run.finish()
+    # run.finish()
 
     test_img = utils.load_img(
         [training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
@@ -245,96 +255,6 @@ def main():
         classes=4
     )
     test_mask = np.argmax(test_mask, axis=-1)
-
-    '''
-    if classes == 4:
-        print(np.unique(test_prediction))
-        test_prediction_argmax = np.argmax(test_prediction, axis=-1)
-        print(np.unique(test_prediction_argmax))
-        print('original shape: ', test_prediction.shape)
-        print('new shape: ', test_prediction_argmax.shape)
-
-        test_mask = utils.load_mask([training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
-                                    segmenting_subregion=0, classes=classes)
-        test_mask_argmax = np.argmax(test_mask, axis=-1)
-        print('mask shape: ', test_mask.shape)
-        print(test_mask.dtype)
-        print(test_prediction.dtype)
-        # test_mask = tf.cast(test_mask, tf.float32)
-        print(test_mask.dtype)
-
-        print('dice:', losses.dice_coef(test_mask, test_prediction).numpy())
-        print('dice edema:', losses.dice_coef_edema(test_mask, test_prediction).numpy())
-        print('dice necrotic:', losses.dice_coef_necrotic(test_mask, test_prediction).numpy())
-        print('dice enhancing:', losses.dice_coef_enhancing(test_mask, test_prediction).numpy())
-
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 10))
-        ax1.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 0], 270), cmap='gray')
-        ax1.set_title('Testing Flair')
-        ax2.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 1], 270), cmap='gray')
-        ax2.set_title('Testing T1ce')
-        # ax3.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 2], 270), cmap='gray')
-        # ax3.set_title('Testing T2')
-        ax3.imshow(ndimage.rotate(test_mask_argmax[0][:, :, n_slice], 270))
-        ax3.set_title('Mask')
-        # ax5.imshow(ndimage.rotate(test_prediction[0][:,:, n_slice, 1], 270))
-        ax4.imshow(ndimage.rotate(test_prediction_argmax[0][:, :, n_slice], 270))
-        ax4.set_title('Prediction')
-        fig.savefig('outputs/test.png')
-
-    elif classes == 1:
-        print(np.unique(test_prediction))
-        test_prediction_argmax = np.argmax(test_prediction[0], axis=-1)
-        print(np.unique(test_prediction_argmax))
-        print('original shape: ', test_prediction.shape)
-        # print('new shape: ', test_prediction_argmax.shape)
-
-        test_mask = utils.load_mask([training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
-                                    segmenting_subregion=2, classes=classes)
-        test_mask_argmax = np.argmax(test_mask, axis=-1)
-        print('mask shape: ', test_mask.shape)
-
-        print(test_mask.dtype)
-        print(test_prediction.dtype)
-        test_mask = tf.cast(test_mask, tf.float32)
-        print(test_mask.dtype)
-
-        print('dice:', losses.dice_coef(test_mask, test_prediction).numpy())
-
-        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(1, 6, figsize=(20, 10))
-        ax1.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 0], 270), cmap='gray')
-        ax1.set_title('Testing Flair')
-        ax2.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 1], 270), cmap='gray')
-        ax2.set_title('Testing T1ce')
-        ax3.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 2], 270), cmap='gray')
-        ax3.set_title('Testing T2')
-        ax4.imshow(ndimage.rotate(test_mask[0][:, :, n_slice], 270))
-        ax4.set_title('Mask')
-        # ax5.imshow(ndimage.rotate(test_prediction[0][:,:, n_slice, 1], 270))
-        ax5.imshow(ndimage.rotate(test_prediction[0][:, :, n_slice], 270))
-        ax5.set_title('Prediction')
-        ax6.imshow(ndimage.rotate(test_prediction_argmax[:, :, n_slice], 270))
-        ax6.set_title('Prediction2')
-        fig.savefig('outputs/test.png')
-    '''
-    '''
-    fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(1, 7, figsize=(20, 10))
-    ax1.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 0], 270), cmap='gray')
-    ax1.set_title('Testing Image')
-    ax2.imshow(ndimage.rotate(test_mask_argmax[:, :, n_slice], 270))
-    ax2.set_title('Mask')
-    ax3.imshow(ndimage.rotate(test_prediction[0, :, :, n_slice, :], 270))
-    ax3.set_title('Prediction')
-    ax4.imshow(ndimage.rotate(test_prediction[0, :, :, n_slice, 0], 270))
-    ax4.set_title('Prediction0')
-    ax5.imshow(ndimage.rotate(test_prediction[0, :, :, n_slice, 1], 270))
-    ax5.set_title('Prediction1')
-    ax6.imshow(ndimage.rotate(test_prediction[0, :, :, n_slice, 2], 270))
-    ax6.set_title('Prediction2')
-    ax7.imshow(ndimage.rotate(test_prediction[0, :, :, n_slice, 3], 270))
-    ax7.set_title('Prediction3')
-    fig.savefig('outputs/test.png')
-    '''
 
 
 if __name__ == '__main__':

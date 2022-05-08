@@ -125,6 +125,8 @@ def predict_image(model1, model2, model3, flair, t1ce, t2, mask, subdir='', coun
     print('dice necrotic:', losses.dice_coef_necrotic(test_mask, prediction_encoded).numpy())
     print('dice enhancing:', losses.dice_coef_enhancing(test_mask, prediction_encoded).numpy())
 
+    custom_cmap = utils.get_custom_cmap()
+
     volume_start = 20
     volume_end = 126 # 125
     step = 2 # 5
@@ -133,32 +135,41 @@ def predict_image(model1, model2, model3, flair, t1ce, t2, mask, subdir='', coun
             fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(1, 5, figsize=(20, 10))
             ax1.imshow(ndimage.rotate(test_img[0][:, :, i, 0], 270), cmap='gray')
             ax1.set_title('Image flair')
+            ax1.axis('off')
             ax2.imshow(ndimage.rotate(test_img[0][:, :, i, 1], 270), cmap='gray')
             ax2.set_title('Image t1ce')
+            ax2.axis('off')
             ax3.imshow(ndimage.rotate(test_img[0][:, :, i, 2], 270), cmap='gray')
             ax3.set_title('Image t2')
-            ax4.imshow(ndimage.rotate(test_mask_argmax[0][:, :, i], 270))
+            ax3.axis('off')
+            ax4.imshow(ndimage.rotate(test_mask_argmax[0][:, :, i], 270), cmap=custom_cmap)
             ax4.set_title('Mask')
-            ax5.imshow(ndimage.rotate(prediction[0][:, :, i], 270))
+            ax4.axis('off')
+            ax5.imshow(ndimage.rotate(prediction[0][:, :, i], 270), cmap=custom_cmap)
             ax5.set_title('Prediction')
+            ax5.axis('off')
         else:
             fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 10))
             ax1.imshow(ndimage.rotate(test_img[0][:, :, i, 0], 270), cmap='gray')
             ax1.set_title('Image flair')
+            ax1.axis('off')
             ax2.imshow(ndimage.rotate(test_img[0][:, :, i, 1], 270), cmap='gray')
             ax2.set_title('Image t1ce')
-            ax3.imshow(ndimage.rotate(test_mask_argmax[0][:, :, i], 270))
+            ax2.axis('off')
+            ax3.imshow(ndimage.rotate(test_mask_argmax[0][:, :, i], 270), cmap=custom_cmap)
             ax3.set_title('Mask')
-            ax4.imshow(ndimage.rotate(prediction[0][:, :, i], 270))
+            ax3.axis('off')
+            ax4.imshow(ndimage.rotate(prediction[0][:, :, i], 270), cmap=custom_cmap)
             ax4.set_title('Prediction')
+            ax4.axis('off')
 
         fig.savefig(f'outputs/{subdir + img_name}_{i}.png')
         plt.close()
 
-        flair = ndimage.rotate(test_img[0][:, :, i, 0], 270)
-        t1ce = ndimage.rotate(test_img[0][:, :, i, 1], 270)
-        true_mask = ndimage.rotate(test_mask_argmax[0][:, :, i], 270)
-        pred_mask = ndimage.rotate(prediction[0][:, :, i], 270)
+        # flair = ndimage.rotate(test_img[0][:, :, i, 0], 270)
+        # t1ce = ndimage.rotate(test_img[0][:, :, i, 1], 270)
+        # true_mask = ndimage.rotate(test_mask_argmax[0][:, :, i], 270)
+        # pred_mask = ndimage.rotate(prediction[0][:, :, i], 270)
 
         #mask = wandb_mask(flair, true_mask, pred_mask)
         #wandb.log({f"{subdir}": mask}, step=counter+i)
@@ -227,14 +238,11 @@ def main():
     args = parser.parse_args()
 
     wandb_key = args.wandb
-    wandb.login(key=wandb_key)
-
-    '''
-    run = wandb.init(project="BraTS2021",
-                     name=f"evaluation_{model_name}",
-                     entity="kuko",
-                     reinit=True)
-    '''
+    # wandb.login(key=wandb_key)
+    # run = wandb.init(project="BraTS2021-evaluation",
+    #                  name=f"evaluation_separate",
+    #                  entity="kuko",
+    #                  reinit=True)
 
     data = args.data_path
     print(os.listdir(data))
@@ -260,7 +268,7 @@ def main():
     model2 = tf.keras.models.load_model('models/separate/model_2.h5', custom_objects=custom_objects, compile=False)
     model3 = tf.keras.models.load_model('models/separate/model_3.h5', custom_objects=custom_objects, compile=False)
     
-    #model_eval(model1, model2, model3, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
+    model_eval(model1, model2, model3, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
 
     #run.finish()
 
