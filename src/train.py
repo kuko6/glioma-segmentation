@@ -14,7 +14,9 @@ from scipy import ndimage
 from wandb.keras import WandbCallback
 
 import utils
+from utils.callbacks import *
 import losses
+from metrics import *
 from segmentation_models_3D import losses as ls
 import unet
 from generator import BratsGen
@@ -158,20 +160,20 @@ def main():
             metrics = [
                 sm.metrics.IOUScore(threshold=0.5),
                 tf.keras.metrics.MeanIoU(num_classes=4),
-                losses.dice_coef_multilabel(classes=config['num_classes']), losses.dice_coef2, losses.dice_coef_necrotic,
-                losses.dice_coef_edema, losses.dice_coef_enhancing
+                dice_coef_multilabel(classes=config['num_classes']), dice_coef2, dice_coef_necrotic,
+                dice_coef_edema, dice_coef_enhancing
             ]
         elif config['num_classes'] == 2:
             metrics = [
                 sm.metrics.IOUScore(threshold=0.5),
                 tf.keras.metrics.MeanIoU(num_classes=2),
-                losses.dice_coef_multilabel(classes=config['num_classes']), losses.dice_coef2
+                dice_coef_multilabel(classes=config['num_classes']), dice_coef2
             ]
         else:
             metrics = [
                 sm.metrics.IOUScore(threshold=0.5),
                 tf.keras.metrics.MeanIoU(num_classes=2),
-                losses.dice_coef_binary, losses.dice_coef2
+                dice_coef_binary, dice_coef2
             ]
 
         LR = config["learning_rate"]
@@ -209,7 +211,7 @@ def main():
             #model.compile(optimizer=optim, loss=losses.dice_coef_binary_loss, metrics=metrics)
             #print('using binary_dice_loss')
 
-        callbacks = utils.callback(
+        callbacks = callback(
             flair=[training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
             t1ce=[training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
             t2=[training_path + 'BraTS2021_00002/BraTS2021_00002_t2.nii.gz'],

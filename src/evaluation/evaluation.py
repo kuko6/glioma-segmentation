@@ -18,6 +18,7 @@ import wandb
 
 import utils
 import losses
+from metrics import *
 
 batch_size = 1
 subregion = 0
@@ -77,11 +78,11 @@ def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
     # test_mask = tf.cast(test_mask, tf.float32)
     # print(test_mask.dtype)
 
-    print('dice:', losses.dice_coef_multilabel(classes=classes)(test_mask, test_prediction).numpy())
+    print('dice:', dice_coef_multilabel(classes=classes)(test_mask, test_prediction).numpy())
     if classes == 4:
-        print('dice edema:', losses.dice_coef_edema(test_mask, test_prediction).numpy())
-        print('dice necrotic:', losses.dice_coef_necrotic(test_mask, test_prediction).numpy())
-        print('dice enhancing:', losses.dice_coef_enhancing(test_mask, test_prediction).numpy())
+        print('dice edema:', dice_coef_edema(test_mask, test_prediction).numpy())
+        print('dice necrotic:', dice_coef_necrotic(test_mask, test_prediction).numpy())
+        print('dice enhancing:', dice_coef_enhancing(test_mask, test_prediction).numpy())
 
     custom_cmap = utils.get_custom_cmap()
 
@@ -150,11 +151,11 @@ def model_eval(my_model, flair_list, t1ce_list, t2_list, mask_list):
         test_prediction = my_model.predict(test_img)
         # test_prediction = np.argmax(test_prediction, axis=-1)
 
-        dice_list.append(losses.dice_coef_multilabel(classes=classes)(test_mask, test_prediction).numpy())
+        dice_list.append(dice_coef_multilabel(classes=classes)(test_mask, test_prediction).numpy())
         if classes == 4:
-            necrotic_list.append(losses.dice_coef_necrotic(test_mask, test_prediction).numpy())
-            edema_list.append(losses.dice_coef_edema(test_mask, test_prediction).numpy())
-            enhancing_list.append(losses.dice_coef_enhancing(test_mask, test_prediction).numpy())
+            necrotic_list.append(dice_coef_necrotic(test_mask, test_prediction).numpy())
+            edema_list.append(dice_coef_edema(test_mask, test_prediction).numpy())
+            enhancing_list.append(dice_coef_enhancing(test_mask, test_prediction).numpy())
 
         img_name = re.search(r"\bBraTS2021_\d+", flair_list[i])
         print(f"image: {img_name.group()} | {i+1}/{len(flair_list)}")
@@ -223,17 +224,17 @@ def main():
     if classes == 4:
         custom_objects = {
             'iou_score': sm.metrics.IOUScore(threshold=0.5),
-            'dice_coef': losses.dice_coef_multilabel,
-            'dice_coef2': losses.dice_coef2,
-            'dice_coef_edema': losses.dice_coef_edema,
-            'dice_coef_necrotic': losses.dice_coef_necrotic,
-            'dice_coef_enhancing': losses.dice_coef_enhancing
+            'dice_coef': dice_coef_multilabel,
+            'dice_coef2': dice_coef2,
+            'dice_coef_edema': dice_coef_edema,
+            'dice_coef_necrotic': dice_coef_necrotic,
+            'dice_coef_enhancing': dice_coef_enhancing
         }
     else:
         custom_objects = {
             'iou_score': sm.metrics.IOUScore(threshold=0.5),
-            'dice_coef': losses.dice_coef_multilabel,
-            'dice_coef2': losses.dice_coef2
+            'dice_coef': dice_coef_multilabel,
+            'dice_coef2': dice_coef2
         }
 
     my_model = tf.keras.models.load_model(model_name, custom_objects=custom_objects, compile=False)

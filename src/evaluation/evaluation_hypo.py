@@ -17,6 +17,7 @@ import keras.backend as K
 
 import utils
 import losses
+from metrics import *
 
 def dice_coef_binary(y_true, y_pred, smooth=1.0):
     y_true_f = K.flatten(y_true)
@@ -108,11 +109,11 @@ def main():
 
   custom_objects = {
     'iou_score': sm.metrics.IOUScore(threshold=0.5),
-    'dice_coef': losses.dice_coef_multilabel,
-    'dice_coef2': losses.dice_coef2,
-    'dice_coef_edema': losses.dice_coef_edema,
-    'dice_coef_necrotic': losses.dice_coef_necrotic,
-    'dice_coef_enhancing': losses.dice_coef_enhancing
+    'dice_coef': dice_coef_multilabel,
+    'dice_coef2': dice_coef2,
+    'dice_coef_edema': dice_coef_edema,
+    'dice_coef_necrotic': dice_coef_necrotic,
+    'dice_coef_enhancing': dice_coef_enhancing
   }
 
   model_name = 'models/categorical_crossentropy_50_2ch_sub0_aug.h5'

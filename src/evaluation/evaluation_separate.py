@@ -20,6 +20,7 @@ import wandb
 
 import utils
 import losses
+from metrics import *
 
 batch_size = 1
 subregion = 0
@@ -126,10 +127,10 @@ def predict_image(model1, model2, model3, flair, t1ce, t2, mask, subdir='', coun
     test_mask_argmax = np.argmax(test_mask, axis=-1)
     prediction_encoded = to_categorical(prediction, num_classes=4)
 
-    print('dice:', losses.dice_coef_multilabel(classes=classes)(test_mask, prediction_encoded).numpy())
-    print('dice edema:', losses.dice_coef_edema(test_mask, prediction_encoded).numpy())
-    print('dice necrotic:', losses.dice_coef_necrotic(test_mask, prediction_encoded).numpy())
-    print('dice enhancing:', losses.dice_coef_enhancing(test_mask, prediction_encoded).numpy())
+    print('dice:', dice_coef_multilabel(classes=classes)(test_mask, prediction_encoded).numpy())
+    print('dice edema:', dice_coef_edema(test_mask, prediction_encoded).numpy())
+    print('dice necrotic:', dice_coef_necrotic(test_mask, prediction_encoded).numpy())
+    print('dice enhancing:', dice_coef_enhancing(test_mask, prediction_encoded).numpy())
 
     custom_cmap = utils.get_custom_cmap()
 
@@ -202,10 +203,10 @@ def model_eval(model1, model2, model3, flair_list, t1ce_list, t2_list, mask_list
         prediction = to_categorical(prediction, num_classes=4)
         # test_prediction = np.argmax(test_prediction, axis=-1)
 
-        dice_list.append(losses.dice_coef_multilabel(classes=classes)(test_mask, prediction).numpy())
-        necrotic_list.append(losses.dice_coef_necrotic(test_mask, prediction).numpy())
-        edema_list.append(losses.dice_coef_edema(test_mask, prediction).numpy())
-        enhancing_list.append(losses.dice_coef_enhancing(test_mask, prediction).numpy())
+        dice_list.append(dice_coef_multilabel(classes=classes)(test_mask, prediction).numpy())
+        necrotic_list.append(dice_coef_necrotic(test_mask, prediction).numpy())
+        edema_list.append(dice_coef_edema(test_mask, prediction).numpy())
+        enhancing_list.append(dice_coef_enhancing(test_mask, prediction).numpy())
 
         img_name = re.search(r"\bBraTS2021_\d+", flair_list[i])
         print(f"image: {img_name.group()} | {i+1}/{len(flair_list)}")
@@ -266,8 +267,8 @@ def main():
 
     custom_objects = {
         'iou_score': sm.metrics.IOUScore(threshold=0.5),
-        'dice_coef': losses.dice_coef_multilabel,
-        'dice_coef2': losses.dice_coef2
+        'dice_coef': dice_coef_multilabel,
+        'dice_coef2': dice_coef2
     }
 
     model1 = tf.keras.models.load_model(model1_path, custom_objects=custom_objects, compile=False)
@@ -318,10 +319,10 @@ def main():
     prediction = combine_predictions(model1, model2, model3, test_img)
     prediction_encoded = to_categorical(prediction, num_classes=4)
 
-    print('dice:', losses.dice_coef_multilabel(classes=classes)(test_mask, prediction_encoded).numpy())
-    print('dice edema:', losses.dice_coef_edema(test_mask, prediction_encoded).numpy())
-    print('dice necrotic:', losses.dice_coef_necrotic(test_mask, prediction_encoded).numpy())
-    print('dice enhancing:', losses.dice_coef_enhancing(test_mask, prediction_encoded).numpy())
+    print('dice:', dice_coef_multilabel(classes=classes)(test_mask, prediction_encoded).numpy())
+    print('dice edema:', dice_coef_edema(test_mask, prediction_encoded).numpy())
+    print('dice necrotic:', dice_coef_necrotic(test_mask, prediction_encoded).numpy())
+    print('dice enhancing:', dice_coef_enhancing(test_mask, prediction_encoded).numpy())
 
     test_mask = np.argmax(test_mask, axis=-1)
 
