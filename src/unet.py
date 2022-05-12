@@ -7,7 +7,7 @@ def unet_model(img_height, img_width, img_depth, img_channels, num_classes):
     s = inputs
     kernel_initializer = 'he_uniform'  # he_normal
 
-    # Contraction path
+    # Downsampling path
     c1 = Conv3D(16, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(s)
     c1 = Conv3D(16, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(c1)
     p1 = MaxPooling3D((2, 2, 2))(c1)
@@ -27,7 +27,7 @@ def unet_model(img_height, img_width, img_depth, img_channels, num_classes):
     c5 = Conv3D(256, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(p4)
     c5 = Conv3D(256, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(c5)
 
-    # Expansive path
+    # Upsampling path
     u6 = Conv3DTranspose(128, (2, 2, 2), strides=(2, 2, 2), padding='same')(c5)
     u6 = concatenate([u6, c4])
     c6 = Conv3D(128, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(u6)
@@ -48,16 +48,12 @@ def unet_model(img_height, img_width, img_depth, img_channels, num_classes):
     c9 = Conv3D(16, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(u9)
     c9 = Conv3D(16, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(c9)
 
-    # sigmoid + binary crossentropy (2 labels)
     if num_classes == 1:
+        # sigmoid + binary crossentropy (1 class + background)
         outputs = Conv3D(num_classes, (1, 1, 1), activation='sigmoid')(c9)
         print('using sigmoid')
-        #outputs = Conv3D(num_classes, (1, 1, 1), activation='softmax')(c9)
-        #print('using softmax')
     else:
-        # softmax + categorical crossentropy (2+ labels)
-        #outputs = Conv3D(num_classes, (1, 1, 1), activation='sigmoid')(c9)
-        #print('using sigmoid')
+        # softmax + categorical crossentropy (2+ classes)
         outputs = Conv3D(num_classes, (1, 1, 1), activation='softmax')(c9)
         print('using softmax')
 

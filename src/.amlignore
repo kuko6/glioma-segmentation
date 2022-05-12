@@ -16,7 +16,9 @@ models/model_0.h5
 models/brats_3d_2ch_cropped.h5
 models/model-best.h5
 
-models/separate/*
+models/separate/2ch/*
+models/separate/3ch/*
+
 models/model_binarycross_2.h5
 
 models/categorical_crossentropy_20_2ch_sub0.h5

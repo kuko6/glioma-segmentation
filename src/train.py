@@ -38,8 +38,20 @@ def test_generator(data_gen, channels):
     print('mask shape: ', mask.shape)
     mask = np.argmax(mask, axis=-1)
     custom_cmap = utils.get_custom_cmap()
-
-    if channels == 3:
+    if channels == 4:
+        fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(1, 5, figsize=(20, 10))
+        ax1.imshow(ndimage.rotate(img[0][:, :, 80, 0], 270), cmap='gray')
+        ax1.set_title('Image flair')
+        ax2.imshow(ndimage.rotate(img[0][:, :, 80, 1], 270), cmap='gray')
+        ax2.set_title('Image t1ce')
+        ax3.imshow(ndimage.rotate(img[0][:, :, 80, 2], 270), cmap='gray')
+        ax3.set_title('Image t2')
+        ax4.imshow(ndimage.rotate(img[0][:, :, 80, 3], 270), cmap='gray')
+        ax4.set_title('Image t1')
+        ax5.imshow(ndimage.rotate(mask[0][:, :, 80], 270), cmap=custom_cmap)
+        ax5.set_title('Mask')
+        fig.savefig(f'outputs/test.png')
+    elif channels == 3:
         fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(20, 10))
         ax1.imshow(ndimage.rotate(img[0][:, :, 80, 0], 270), cmap='gray')
         ax1.set_title('Image flair')
@@ -50,7 +62,7 @@ def test_generator(data_gen, channels):
         ax4.imshow(ndimage.rotate(mask[0][:, :, 80], 270), cmap=custom_cmap)
         ax4.set_title('Mask')
         fig.savefig(f'outputs/test.png')
-    else: # 2 channels
+    elif channels == 2: # 2 channels
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 10))
         ax1.imshow(ndimage.rotate(img[0][:, :, 80, 0], 270), cmap='gray')
         ax1.set_title('Image flair')
@@ -73,10 +85,9 @@ def main():
 
     wandb_key = args.wandb
     wandb.login(key=wandb_key)
-    # wandb.init(project="BraTS2021", entity="kuko")
     wandb.config = {
-        "num_classes": 2, # 1, 2, 4
-        "img_channels": 3, # 2, 3
+        "num_classes": 4, # 1, 2, 4
+        "img_channels": 4, # 2, 3
         "learning_rate": 1e-4, #1e-3, 1e-4, 1e-5, 1e-6
         "epochs": 50,
         "batch_size": 2, # 2, 4
@@ -96,11 +107,13 @@ def main():
         os.mkdir('outputs')
 
     train_t2_list = sorted(glob.glob(training_path + '/*/*t2.nii.gz'))
+    train_t1_list = sorted(glob.glob(training_path + '/*/*t1.nii.gz'))
     train_t1ce_list = sorted(glob.glob(training_path + '/*/*t1ce.nii.gz'))
     train_flair_list = sorted(glob.glob(training_path + '/*/*flair.nii.gz'))
     train_mask_list = sorted(glob.glob(training_path + '/*/*seg.nii.gz'))
 
     val_t2_list = sorted(glob.glob(validation_path + '/*/*t2.nii.gz'))
+    val_t1_list = sorted(glob.glob(validation_path + '/*/*t1.nii.gz'))
     val_t1ce_list = sorted(glob.glob(validation_path + '/*/*t1ce.nii.gz'))
     val_flair_list = sorted(glob.glob(validation_path + '/*/*flair.nii.gz'))
     val_mask_list = sorted(glob.glob(validation_path + '/*/*seg.nii.gz'))
@@ -110,18 +123,19 @@ def main():
         subregions = [0]
     else:
         subregions = [1, 2, 3]
-        #subregions = [2]
+        #subregions = [3]
 
     for subregion in subregions:
         run = wandb.init(
             project="BraTS2021",
             name=f"{config['loss']}_{config['epochs']}_{config['img_channels']}ch_sub{subregion}",
             entity="kuko",
-            reinit=True
+            reinit=True,
+            config=config
         )
 
         train_img_datagen = BratsGen(
-            train_flair_list, train_t1ce_list, train_t2_list, train_mask_list,
+            train_flair_list, train_t1ce_list, train_t2_list, train_mask_list, train_t1_list,
             img_dim=(128, 128, 128), 
             img_channels=config['img_channels'],
             classes=config['num_classes'],
@@ -130,7 +144,7 @@ def main():
         )
 
         val_img_datagen = BratsGen(
-            val_flair_list, val_t1ce_list, val_t2_list, val_mask_list,
+            val_flair_list, val_t1ce_list, val_t2_list, val_mask_list, val_t1_list,
             img_dim=(128, 128, 128), 
             img_channels=config['img_channels'],
             classes=config['num_classes'],

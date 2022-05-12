@@ -1,4 +1,5 @@
 import cv2
+from matplotlib import image
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 import nibabel as nib
@@ -10,7 +11,7 @@ import random
 
 # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class BratsGen(tf.keras.utils.Sequence):
-    def __init__(self, flair_list, t1ce_list, t2_list, mask_list, img_dim=(128, 128, 128),
+    def __init__(self, flair_list, t1ce_list, t2_list, t1_list, mask_list, img_dim=(128, 128, 128),
                  img_channels=3, classes=4, batch_size=2, segmenting_subregion=0, aug=False):
         self.batch_size = batch_size
         self.classes = classes
@@ -19,6 +20,7 @@ class BratsGen(tf.keras.utils.Sequence):
         self.flair_list = flair_list
         self.t1ce_list = t1ce_list
         self.t2_list = t2_list
+        self.t1_list = t1_list
         self.mask_list = mask_list
         self.segmenting_subregion = segmenting_subregion
         self.aug = aug
@@ -31,9 +33,10 @@ class BratsGen(tf.keras.utils.Sequence):
         batch_flair = self.flair_list[i: i + self.batch_size]
         batch_t1ce = self.t1ce_list[i: i + self.batch_size]
         batch_t2 = self.t2_list[i: i + self.batch_size]
+        batch_t1 = self.t1_list[i: i + self.batch_size]
         batch_mask = self.mask_list[i: i + self.batch_size]
 
-        X, y = self.__data_generation(batch_flair, batch_t1ce, batch_t2, batch_mask)
+        X, y = self.__data_generation(batch_flair, batch_t1ce, batch_t2, batch_t1, batch_mask)
 
         return X, y
 
@@ -52,39 +55,42 @@ class BratsGen(tf.keras.utils.Sequence):
         return image
 
     # augmentations
-    def __augmentation(self, flair, t1ce, t2, mask):
+    def __augmentation(self, flair, t1ce, t2, t1, mask):
         verticalFlip = A.Compose(
             [A.VerticalFlip(p=1)], 
             additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}
-        ) # 50%
+        ) # 50% chance
         randomRotate = A.Compose(
             [A.Rotate(p=1, limit=(-10, 10), border_mode=cv2.BORDER_CONSTANT)],
             additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}
-        ) # 50%
+        ) # 60% chance
 
         if random.random() < 0.5:
-            t = verticalFlip(image=flair, image2=t1ce, image3=t2, mask=mask)
+            t = verticalFlip(image=flair, image1=t1, image2=t1ce, image3=t2, mask=mask)
             flair = t['image']
+            t1 = t['image1']
             t1ce = t['image2']
             t2 = t['image3']
             mask = t['mask']
 
         if random.random() < 0.6:
-            t = randomRotate(image=flair, image2=t1ce, image3=t2, mask=mask)
+            t = randomRotate(image=flair, image1=t1, image2=t1ce, image3=t2, mask=mask)
             flair = t['image']
+            t1 = t['image1']
             t1ce = t['image2']
             t2 = t['image3']
             mask = t['mask']
 
-        return flair, t1ce, t2, mask
+        return flair, t1ce, t2, t1, mask
 
-    def __data_generation(self, flair_list, t1ce_list, t2_list, mask_list):
+    def __data_generation(self, flair_list, t1ce_list, t2_list, t1_list, mask_list):
         images = []
         masks = []
-        for flair_name, t1ce_name, t2_name, mask_name in zip(flair_list, t1ce_list, t2_list, mask_list):
+        for flair_name, t1ce_name, t2_name, t1_name, mask_name in zip(flair_list, t1ce_list, t2_list, t1_list, mask_list):
             flair = nib.load(flair_name).get_fdata()
             t1ce = nib.load(t1ce_name).get_fdata()
             t2 = nib.load(t2_name).get_fdata()
+            t1 = nib.load(t1_name).get_fdata()
             mask = nib.load(mask_name).get_fdata()
 
             # crop the images and mask
@@ -92,6 +98,7 @@ class BratsGen(tf.keras.utils.Sequence):
             flair = flair[left_x:right_x, top_y:bottom_y, :]
             t1ce = t1ce[left_x:right_x, top_y:bottom_y, :]
             t2 = t2[left_x:right_x, top_y:bottom_y, :]
+            t1 = t1[left_x:right_x, top_y:bottom_y, :]
             mask = mask[left_x:right_x, top_y:bottom_y, :]
 
             volume_start = 13
@@ -100,6 +107,7 @@ class BratsGen(tf.keras.utils.Sequence):
             tmp_flair = np.zeros((128, 128, 128))
             tmp_t1ce = np.zeros((128, 128, 128))
             tmp_t2 = np.zeros((128, 128, 128))
+            tmp_t1 = np.zeros((128, 128, 128))
             tmp_mask = np.zeros((128, 128, 128))
 
             # resize the images and mask
@@ -108,27 +116,34 @@ class BratsGen(tf.keras.utils.Sequence):
                 tmp_flair[:, :, i] = cv2.resize(flair[:, :, i + volume_start], (128, 128), interpolation=inter)
                 tmp_t1ce[:, :, i] = cv2.resize(t1ce[:, :, i + volume_start], (128, 128), interpolation=inter)
                 tmp_t2[:, :, i] = cv2.resize(t2[:, :, i + volume_start], (128, 128), interpolation=inter)
+                tmp_t1[:, :, i] = cv2.resize(t1[:, :, i + volume_start], (128, 128), interpolation=inter)
                 tmp_mask[:, :, i] = cv2.resize(mask[:, :, i + volume_start], (128, 128), interpolation=inter)
             flair = tmp_flair
             t1ce = tmp_t1ce
             t2 = tmp_t2
+            t1 = tmp_t1
             mask = tmp_mask
 
             # augmentations
             if self.aug:
-                flair, t1ce, t2, mask = self.__augmentation(flair, t1ce, t2, mask)
+                flair, t1ce, t2, t1, mask = self.__augmentation(flair, t1ce, t2, t1, mask)
 
             # ==================== Sequences ==================== #
             # normalise
             flair = self.__normalise(flair)
             t1ce = self.__normalise(t1ce)
             t2 = self.__normalise(t2)
+            t1 = self.__normalise(t1)
 
             # stack the sequences
-            if self.img_channels == 3:
+            if self.img_channels == 4:
+                image = np.stack([flair, t1ce, t2, t1], axis=3)
+            elif self.img_channels == 3:
                 image = np.stack([flair, t1ce, t2], axis=3)
-            else:
+            elif self.img_channels == 2:
                 image = np.stack([flair, t1ce], axis=3)
+            else:
+                image = np.stack([flair], axis=3)
 
             # ==================== Mask ==================== #
             # change label 4 to label 3 because label 3 is empty

@@ -2,6 +2,7 @@ import argparse
 # from azureml.core import Run
 
 import os
+from pyexpat import model
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,8 +24,12 @@ import losses
 batch_size = 1
 subregion = 0
 classes = 4
-channels = 2
+channels = 3
 n_slice = 70
+model1_path = 'models/separate/3ch/model_1_3ch.h5'
+model2_path = 'models/separate/3ch/model_2_3ch.h5'
+model3_path = 'models/separate/3ch/model_3_3ch.h5'
+
 
 def hausdorff_distance(y_true, y_pred, classes=[1, 2, 3]):
     haussdorf_dist = 0
@@ -34,6 +39,7 @@ def hausdorff_distance(y_true, y_pred, classes=[1, 2, 3]):
         haussdorf_dist = directed_hausdorff(preds_coords, true_coords)[0]
 
     return haussdorf_dist
+
 
 # util function for generating interactive image mask from components
 def wandb_mask(img, true_mask, pred_mask):
@@ -264,9 +270,9 @@ def main():
         'dice_coef2': losses.dice_coef2
     }
 
-    model1 = tf.keras.models.load_model('models/separate/model_1.h5', custom_objects=custom_objects, compile=False)
-    model2 = tf.keras.models.load_model('models/separate/model_2.h5', custom_objects=custom_objects, compile=False)
-    model3 = tf.keras.models.load_model('models/separate/model_3.h5', custom_objects=custom_objects, compile=False)
+    model1 = tf.keras.models.load_model(model1_path, custom_objects=custom_objects, compile=False)
+    model2 = tf.keras.models.load_model(model2_path, custom_objects=custom_objects, compile=False)
+    model3 = tf.keras.models.load_model(model3_path, custom_objects=custom_objects, compile=False)
     
     model_eval(model1, model2, model3, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
 
