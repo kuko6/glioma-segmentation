@@ -12,7 +12,7 @@ import cv2
 import re
 
 import losses
-from data_processing import *
+from utils.data_processing import *
 
 def show_predictions(my_model, flair, t1ce, t2, mask, channels, subregion, n_slice, epoch, classes=4):
     test_img = load_img(flair, t1ce, t2, img_channels=channels)

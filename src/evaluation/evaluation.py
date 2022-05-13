@@ -16,16 +16,16 @@ import re
 
 import wandb
 
-import utils
+import utils.utils as utils
 import losses
 from metrics import *
 
 batch_size = 1
 subregion = 0
 classes = 4
-channels = 2
+channels = 3
 n_slice = 80
-model_name = 'models/model_test.h5'
+model_name = 'models/model_3ch_aug_e5.h5'
 
 def hausdorff_distance(y_true, y_pred, classes=[1, 2, 3]):
     haussdorf_dist = 0
@@ -238,7 +238,8 @@ def main():
         }
 
     my_model = tf.keras.models.load_model(model_name, custom_objects=custom_objects, compile=False)
-    
+
+    print(f'\n|Testing of model: {model_name}|\n')
     model_eval(my_model, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
 
     # run.finish()

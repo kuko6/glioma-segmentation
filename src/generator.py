@@ -36,7 +36,7 @@ class BratsGen(tf.keras.utils.Sequence):
         batch_t1 = self.t1_list[i: i + self.batch_size]
         batch_mask = self.mask_list[i: i + self.batch_size]
 
-        X, y = self.__data_generation(batch_flair, batch_t1ce, batch_t2, batch_t1, batch_mask)
+        X, y = self.__data_generation(flair_list=batch_flair, t1ce_list=batch_t1ce, t2_list=batch_t2, t1_list=batch_t1, mask_list=batch_mask)
 
         return X, y
 
@@ -126,7 +126,7 @@ class BratsGen(tf.keras.utils.Sequence):
 
             # augmentations
             if self.aug:
-                flair, t1ce, t2, t1, mask = self.__augmentation(flair, t1ce, t2, t1, mask)
+                flair, t1ce, t2, t1, mask = self.__augmentation(flair=flair, t1ce=t1ce, t2=t2, t1=t1, mask=mask)
 
             # ==================== Sequences ==================== #
             # normalise
@@ -166,6 +166,8 @@ class BratsGen(tf.keras.utils.Sequence):
 
             # encode
             if self.segmenting_subregion == 0:
+                print(mask.shape)
+                print(np.unique(mask))
                 mask = to_categorical(mask, num_classes=4)
             elif self.classes == 2:
                 mask = to_categorical(mask, num_classes=2)

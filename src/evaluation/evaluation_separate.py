@@ -18,18 +18,18 @@ import re
 
 import wandb
 
-import utils
+import utils.utils as utils
 import losses
 from metrics import *
 
 batch_size = 1
 subregion = 0
 classes = 4
-channels = 3
+channels = 2
 n_slice = 70
-model1_path = 'models/separate/3ch/model_1_3ch.h5'
-model2_path = 'models/separate/3ch/model_2_3ch.h5'
-model3_path = 'models/separate/3ch/model_3_3ch.h5'
+model1_path = 'models/separate/2ch/model_1.h5'
+model2_path = 'models/separate/2ch/model_2.h5'
+model3_path = 'models/separate/2ch/model_3.h5'
 
 
 def hausdorff_distance(y_true, y_pred, classes=[1, 2, 3]):
@@ -275,7 +275,7 @@ def main():
     model2 = tf.keras.models.load_model(model2_path, custom_objects=custom_objects, compile=False)
     model3 = tf.keras.models.load_model(model3_path, custom_objects=custom_objects, compile=False)
     
-    model_eval(model1, model2, model3, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
+    #model_eval(model1, model2, model3, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
 
     #run.finish()
 
@@ -292,7 +292,6 @@ def main():
     print(stacked_prediction.shape)
     print(np.unique(stacked_prediction))
     '''
-
 
     test_img = utils.load_img(
         [testing_path + 'BraTS2021_01627/BraTS2021_01627_flair.nii.gz'],

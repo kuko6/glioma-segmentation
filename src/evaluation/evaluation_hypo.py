@@ -15,7 +15,7 @@ from tensorflow.keras.utils import to_categorical
 import re
 import keras.backend as K
 
-import utils
+import utils.utils as utils
 import losses
 from metrics import *
 

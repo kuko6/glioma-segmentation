@@ -28,3 +28,9 @@ models/categorical_crossentropy_50_2ch_sub0_aug_lr-4_no_decay.h5
 
 models/categorical_crossentropy_50_3ch_sub0.h5
 models/categorical_crossentropy_50_3ch_sub0_aug.h5
+
+models/model_test_2ch.h5
+models/model_test_3ch.h5
+models/model_2ch_aug_e3.h5
+models/model_3ch_aug_e3.h5
+models/model_3ch_aug_e3.h5

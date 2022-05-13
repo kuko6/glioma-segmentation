@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from scipy import ndimage
 from wandb.keras import WandbCallback
 
-import utils
+import utils.utils as utils
 from utils.callbacks import *
 import losses
 from metrics import *
@@ -124,8 +124,8 @@ def main():
     if config['num_classes'] == 4:
         subregions = [0]
     else:
-        subregions = [1, 2, 3]
-        #subregions = [3]
+        #subregions = [1, 2, 3]
+        subregions = [1]
 
     for subregion in subregions:
         run = wandb.init(
@@ -137,7 +137,11 @@ def main():
         )
 
         train_img_datagen = BratsGen(
-            train_flair_list, train_t1ce_list, train_t2_list, train_mask_list, train_t1_list,
+            flair_list=train_flair_list, 
+            t1ce_list=train_t1ce_list, 
+            t2_list=train_t2_list, 
+            t1_list=train_t1_list, 
+            mask_list=train_mask_list,
             img_dim=(128, 128, 128), 
             img_channels=config['img_channels'],
             classes=config['num_classes'],
@@ -146,7 +150,11 @@ def main():
         )
 
         val_img_datagen = BratsGen(
-            val_flair_list, val_t1ce_list, val_t2_list, val_mask_list, val_t1_list,
+            flair_list=val_flair_list, 
+            t1ce_list=val_t1ce_list, 
+            t2_list=val_t2_list, 
+            t1_list=val_t1_list, 
+            mask_list=val_mask_list,
             img_dim=(128, 128, 128), 
             img_channels=config['img_channels'],
             classes=config['num_classes'],
