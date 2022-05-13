@@ -22,7 +22,7 @@ def unet_model(img_height, img_width, img_depth, img_channels, num_classes):
 
     c4 = Conv3D(128, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(p3)
     c4 = Conv3D(128, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(c4)
-    p4 = MaxPooling3D(pool_size=(2, 2, 2))(c4)
+    p4 = MaxPooling3D((2, 2, 2))(c4)
 
     c5 = Conv3D(256, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(p4)
     c5 = Conv3D(256, (3, 3, 3), activation='relu', kernel_initializer=kernel_initializer, padding='same')(c5)
@@ -60,10 +60,10 @@ def unet_model(img_height, img_width, img_depth, img_channels, num_classes):
     model = Model(inputs=[inputs], outputs=[outputs])
     print("input shape: ", model.input_shape)
     print("output shape: ", model.output_shape)
-    # model.summary()
 
     return model
 
 
 if __name__ == '__main__':
     model = unet_model(128, 128, 128, 3, 2)
+    model.summary()
