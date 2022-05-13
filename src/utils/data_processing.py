@@ -38,24 +38,26 @@ def normalise(image):
     return image
 
 
-def load_img(flair_list, t1ce_list, t2_list, img_channels):
+def load_img(flair_list, t1ce_list, t2_list, t1_list, img_channels):
     images = []
-    for flair_name, t1ce_name, t2_name in zip(flair_list, t1ce_list, t2_list):
+    for flair_name, t1ce_name, t2_name, t1_name in zip(flair_list, t1ce_list, t2_list, t1_list):
         flair = nib.load(flair_name).get_fdata()
         t1ce = nib.load(t1ce_name).get_fdata()
         t2 = nib.load(t2_name).get_fdata()
+        t1 = nib.load(t1_name).get_fdata()
 
         # crop the images and mask
         left_x, right_x, top_y, bottom_y = get_dimensions(flair[:, :, 0])
-        # print(left_x, right_x, top_y, bottom_y)
         flair = flair[left_x:right_x, top_y:bottom_y, :]
         t1ce = t1ce[left_x:right_x, top_y:bottom_y, :]
         t2 = t2[left_x:right_x, top_y:bottom_y, :]
+        t1 = t1[left_x:right_x, top_y:bottom_y, :]
 
         volume_start = 13
         tmp_flair = np.zeros((128, 128, 128))
         tmp_t1ce = np.zeros((128, 128, 128))
         tmp_t2 = np.zeros((128, 128, 128))
+        tmp_t1 = np.zeros((128, 128, 128))
 
         # resize the images
         inter = cv2.INTER_NEAREST
@@ -63,20 +65,27 @@ def load_img(flair_list, t1ce_list, t2_list, img_channels):
             tmp_flair[:,:,i] = cv2.resize(flair[:,:,i+volume_start], (128, 128), interpolation=inter)
             tmp_t1ce[:,:,i] = cv2.resize(t1ce[:,:,i+volume_start], (128, 128), interpolation=inter)
             tmp_t2[:,:,i]= cv2.resize(t2[:,:,i+volume_start], (128, 128), interpolation=inter)
+            tmp_t1[:,:,i]= cv2.resize(t1[:,:,i+volume_start], (128, 128), interpolation=inter)
         flair = tmp_flair
         t1ce = tmp_t1ce
         t2 = tmp_t2
+        t1 = tmp_t1
 
         # normalise
         flair = normalise(flair)
         t1ce = normalise(t1ce)
         t2 = normalise(t2)
+        t1 = normalise(t1)
 
         # stack the sequences
-        if img_channels == 3:
+        if img_channels == 4:
+            image = np.stack([flair, t1ce, t2, t1], axis=3)
+        elif img_channels == 3:
             image = np.stack([flair, t1ce, t2], axis=3)
-        else:
+        elif img_channels == 2:
             image = np.stack([flair, t1ce], axis=3)
+        else:
+            image = np.stack([flair], axis=3)
 
     images.append(image)
     images = np.array(images)

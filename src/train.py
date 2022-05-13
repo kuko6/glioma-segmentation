@@ -223,6 +223,7 @@ def main():
             flair=[training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
             t1ce=[training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
             t2=[training_path + 'BraTS2021_00002/BraTS2021_00002_t2.nii.gz'],
+            t1=[training_path + 'BraTS2021_00002/BraTS2021_00002_t1.nii.gz'],
             mask=[training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
             channels=config['img_channels'],
             subregion=subregion,

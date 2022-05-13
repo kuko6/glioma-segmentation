@@ -166,8 +166,6 @@ class BratsGen(tf.keras.utils.Sequence):
 
             # encode
             if self.segmenting_subregion == 0:
-                print(mask.shape)
-                print(np.unique(mask))
                 mask = to_categorical(mask, num_classes=4)
             elif self.classes == 2:
                 mask = to_categorical(mask, num_classes=2)

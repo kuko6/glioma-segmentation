@@ -14,8 +14,8 @@ import re
 import losses
 from utils.data_processing import *
 
-def show_predictions(my_model, flair, t1ce, t2, mask, channels, subregion, n_slice, epoch, classes=4):
-    test_img = load_img(flair, t1ce, t2, img_channels=channels)
+def show_predictions(my_model, flair, t1ce, t2, t1, mask, channels, subregion, n_slice, epoch, classes=4):
+    test_img = load_img(flair, t1ce, t2, t1, img_channels=channels)
 
     test_prediction = my_model.predict(test_img)
     test_prediction_argmax = np.argmax(test_prediction, axis=-1)
@@ -68,10 +68,11 @@ def show_predictions(my_model, flair, t1ce, t2, mask, channels, subregion, n_sli
 
 
 class PredictionCallback(tf.keras.callbacks.Callback):
-    def __init__(self, flair, t1ce, t2, mask, channels, subregion, n_slice, classes=4):
+    def __init__(self, flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes=4):
         self.flair = flair
         self.t1ce = t1ce
         self.t2 = t2
+        self.t1 = t1
         self.mask = mask
         self.channels = channels
         self.subregion = subregion
@@ -101,7 +102,7 @@ class PredictionCallback(tf.keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         image, true_mask, pred_mask = show_predictions(
-            self.model, self.flair, self.t1ce, self.t2, self.mask,
+            self.model, self.flair, self.t1ce, self.t2, self.t1, self.mask,
             self.channels, self.subregion, self.n_slice, epoch, self.classes
         )
 
@@ -110,12 +111,12 @@ class PredictionCallback(tf.keras.callbacks.Callback):
         wandb.log({"predictions": mask}, commit=False)
 
 
-def callback(flair, t1ce, t2, mask, channels, subregion, n_slice, classes):
+def callback(flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes):
     csv_logger = CSVLogger(f'outputs/training_{subregion}.log', separator=',', append=False)
     callbacks = [
         EarlyStopping(monitor='loss', min_delta=0, patience=5, verbose=1, mode='auto'),
         #ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
-        PredictionCallback(flair, t1ce, t2, mask, channels, subregion, n_slice, classes),
+        PredictionCallback(flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes),
         csv_logger
     ]
 
