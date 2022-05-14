@@ -55,7 +55,7 @@ def list_files(path):
 
     return files
 
-
+# tests the training generator
 def test_generator(data_gen, channels):
     img, mask = data_gen.__getitem__(0)
     #mask = mask[0]
@@ -139,6 +139,7 @@ def main():
     else:
         subregions = [1, 2, 3]
 
+    # loop relevant only for separate class training, otherwise will only do one iteration
     for subregion in subregions:
         run = wandb.init(
             project="BraTS2021",
@@ -148,6 +149,7 @@ def main():
             config=config
         )
 
+        # getting the training and valitation generators
         train_img_datagen = BratsGen(
             flair_list=train_flair_list, 
             t1ce_list=train_t1ce_list, 
@@ -176,6 +178,7 @@ def main():
 
         test_generator(train_img_datagen, channels=config['img_channels'])
 
+        # defining metrics used during training
         if config['num_classes'] == 4:
             metrics = [
                 sm.metrics.IOUScore(threshold=0.5),
@@ -203,12 +206,14 @@ def main():
         #steps_per_epoch = 10
         #val_steps_per_epoch = 2
 
+        # defining the U-Net model
         model = unet(
             img_height=128, img_width=128, img_depth=128, 
             img_channels=config["img_channels"], 
             num_classes=config["num_classes"]
         )
 
+        # setting the loss function
         if config['loss'] == "dice_loss":
             #model.compile(optimizer=optim, loss=losses.dice_loss, metrics=metrics)
             #loss = sm.losses.DiceLoss(class_weights=[0.02, 0.98])
@@ -231,6 +236,8 @@ def main():
             #model.compile(optimizer=optim, loss=losses.dice_coef_binary_loss, metrics=metrics)
             #print('using binary_dice_loss')
 
+        # defining the callbacks
+        # the sequences are needed because of the prediction callback
         callbacks = callback(
             flair=[training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
             t1ce=[training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
@@ -243,6 +250,7 @@ def main():
             classes=config['num_classes']
         )
 
+        # training the model
         history = model.fit(
             train_img_datagen,
             steps_per_epoch=steps_per_epoch,
@@ -254,10 +262,9 @@ def main():
         )
 
         model.save(f'outputs/model_{subregion}.h5')
-
-        hist_df = pd.DataFrame(history.history)
-
+        
         # Saves history as .csv
+        hist_df = pd.DataFrame(history.history)
         hist_csv_file = f'outputs/history_{subregion}.csv'
         with open(hist_csv_file, mode='w') as f:
             hist_df.to_csv(f)

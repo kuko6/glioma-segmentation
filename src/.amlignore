@@ -17,7 +17,7 @@ models/brats_3d_2ch_cropped.h5
 models/model-best.h5
 
 models/separate/2ch/*
-#models/separate/3ch/*
+models/separate/3ch/*
 
 models/model_binarycross_2.h5
 
@@ -34,3 +34,4 @@ models/model_test_3ch.h5
 models/model_2ch_aug_e3.h5
 models/model_3ch_aug_e3.h5
 models/model_3ch_aug_e5.h5
+models/model_3ch_aug_e4.h5

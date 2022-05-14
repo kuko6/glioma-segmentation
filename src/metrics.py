@@ -50,7 +50,7 @@ def dice_coef2(y_true, y_pred, epsilon=1e-6):
     dice_denominator = K.sum(y_true * y_true, axis=axis) + K.sum(y_pred * y_pred, axis=axis) + epsilon
     return K.mean((dice_numerator) / (dice_denominator))
 
-# Dice coeficient defined for each subrehion
+# Dice coeficient defined for each subregion
 def dice_coef_necrotic(y_true, y_pred, smooth=1.0):
     y_true_f = K.flatten(y_true[:, :, :, :, 1])
     y_pred_f = K.flatten(y_pred[:, :, :, :, 1])

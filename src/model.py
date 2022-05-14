@@ -35,7 +35,7 @@ def unet(img_height, img_width, img_depth, img_channels, num_classes):
     input = Input((img_height, img_width, img_depth, img_channels))
     kernel_init = 'he_uniform'  # he_normal
 
-    # Downampling path
+    # Downsampling path
     skip1, down1 = downsampling_conv(input, kernel_init, filters=16)
     skip2, down2 = downsampling_conv(down1, kernel_init, filters=32)
     skip3, down3 = downsampling_conv(down2, kernel_init, filters=64)

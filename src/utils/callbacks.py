@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from scipy import ndimage
 import wandb
 import tensorflow as tf
+from keras.callbacks import CSVLogger, EarlyStopping, ReduceLROnPlateau
 import cv2
 import re
 
@@ -107,7 +108,7 @@ class PredictionCallback(tf.keras.callbacks.Callback):
             self.channels, self.subregion, self.n_slice, epoch, self.classes
         )
 
-        # mask = self.wandb_mask(image.numpy(), pred_mask.numpy(), true_mask.numpy())
+        # logs the mask to wandb
         mask = self.wandb_mask(image, true_mask, pred_mask)
         wandb.log({"predictions": mask}, commit=False)
 
