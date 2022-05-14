@@ -37,6 +37,13 @@ def tversky_loss(y_true, y_pred):
     return Ncl - T
 
 
+'''
+def dice_loss(y_true, y_pred, numLabels=4):
+    dice = dice_coef(y_true, y_pred)
+    return 1.0 - dice
+'''
+
+
 def dice_loss(y_true, y_pred, numLabels=4):
     dice = 0
     for index in range(numLabels):
@@ -54,13 +61,6 @@ def dice_coef_binary_loss(y_true, y_pred, smooth=1.0):
     y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
     return 1 - (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
-
-
-'''
-def dice_loss(y_true, y_pred, numLabels=4):
-    dice = dice_coef(y_true, y_pred)
-    return 1.0 - dice
-'''
 
 
 def loss():

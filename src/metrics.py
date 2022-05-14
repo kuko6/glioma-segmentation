@@ -5,35 +5,19 @@ import numpy as np
 import tensorflow as tf
 import math
 
-'''
-# multilabel 
-def dice_coef(y_true, y_pred, smooth=1.0, classes=4):
-    total_loss = 0
-
-    for i in range(classes):
-        y_true_f = K.flatten(y_true[:,:,:,:,i])
-        y_pred_f = K.flatten(y_pred[:,:,:,:,i])
-        intersection = K.sum(y_true_f * y_pred_f)
-        loss = ((2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth))
-
-        if i == 0:
-            total_loss = loss
-        else:
-            total_loss = total_loss + loss
-    total_loss = total_loss / classes
-
-    return total_loss
-'''
+# -------------------------------------------------------------------------------- #
+# Metrics used in training and evaluation.
+# Includes:
+#   - dice coeficient
+# -------------------------------------------------------------------------------- #
 
 # https://github.com/keras-team/keras/issues/9395#issuecomment-379276452
-# binary
 def dice_coef_binary(y_true, y_pred, smooth=1.0):
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
-#dsc
 def dice_coef_multilabel(classes=4):
     def dice_coef(y_true, y_pred):
         dice = 0
@@ -66,7 +50,7 @@ def dice_coef2(y_true, y_pred, epsilon=1e-6):
     dice_denominator = K.sum(y_true * y_true, axis=axis) + K.sum(y_pred * y_pred, axis=axis) + epsilon
     return K.mean((dice_numerator) / (dice_denominator))
 
-
+# Dice coeficient defined for each subrehion
 def dice_coef_necrotic(y_true, y_pred, smooth=1.0):
     y_true_f = K.flatten(y_true[:, :, :, :, 1])
     y_pred_f = K.flatten(y_pred[:, :, :, :, 1])

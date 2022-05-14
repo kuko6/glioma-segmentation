@@ -1,6 +1,11 @@
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv3D, MaxPooling3D, concatenate, Conv3DTranspose, Dropout
 
+# -------------------------------------------------------------------------------- #
+# A 3D U-Net architecture consisting of 4 downsampling and 4 upsampling paths.
+# The input shape of the architecture: (batch_size, 128, 128, 128, num_channels).
+# The output shape of the architecture: (batch_size, 128, 128, 128, num_classes).
+# -------------------------------------------------------------------------------- #
 
 def downsampling_conv(input, kernel_init, filters):
     conv1 = Conv3D(filters, (3, 3, 3), activation='relu', kernel_initializer=kernel_init, padding='same')(input)

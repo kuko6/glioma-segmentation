@@ -8,6 +8,12 @@ from tensorflow.keras.utils import to_categorical
 import tensorflow as tf
 import cv2
 
+# -------------------------------------------------------------------------------- #
+# Additional functions used for data processing or loading.
+# Includes:
+#   - custom cmap used for mask visualization
+#   - functions used for loading images and masks and their helper functions
+# -------------------------------------------------------------------------------- #
 
 def get_custom_cmap():
     colorarray = [

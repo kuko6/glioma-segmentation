@@ -8,8 +8,18 @@ from sklearn.preprocessing import MinMaxScaler
 import albumentations as A
 import random
 
+# ----------------------------------------------------------------------------------------- #
+# Data generator used for providing the preprocessed, optionally augmented, batches of data.
+# The preprocessing includes cropping the background, downsampling to 128x128x128
+# and normalising the volumes with MinMax normalisation.
+# The implemented augmentations are: 
+#   - vertical flipping with 50% chance 
+#   - random rotation in range (-10, 10) with 50% chance
+#
+# Inspired by:
+#   - https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
+# ----------------------------------------------------------------------------------------- #
 
-# https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class BratsGen(tf.keras.utils.Sequence):
     def __init__(self, flair_list, t1ce_list, t2_list, t1_list, mask_list, img_dim=(128, 128, 128),
                  img_channels=3, classes=4, batch_size=2, segmenting_subregion=0, aug=False):

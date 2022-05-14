@@ -21,6 +21,28 @@ from segmentation_models_3D import losses as ls
 import unet
 from generator import BratsGen
 
+# -------------------------------------------------------------------------------- #
+# Script used for model training.
+# Its important to set the config dict, because it affects the training process.
+# Supports:
+#   - standard and ensemble training
+#   - multiple sequences
+#   - categorical and binary crossentropy and dice loss functions
+#   - wandb integration
+#   - test prediction after each epoch (prediction callback)
+#   - saves the training history as .csv and final model as .h5 
+# -------------------------------------------------------------------------------- #
+
+config = {
+    "num_classes": 4, # 1, 2, 4
+    "img_channels": 4, # 2, 3, 4
+    "learning_rate": 1e-4, #1e-3, 1e-4, 1e-5, 1e-6
+    "epochs": 50,
+    "batch_size": 2, # 2, 4
+    "loss": "categorical_crossentropy", # categorical_crossentropy, dice_loss, binary_crossentropy, binary_dice_loss
+    "optimizer": "adam",
+    "dataset": "BraTS2021"
+}
 
 def list_files(path):
     brains = os.listdir(path)
@@ -87,17 +109,7 @@ def main():
 
     wandb_key = args.wandb
     wandb.login(key=wandb_key)
-    wandb.config = {
-        "num_classes": 4, # 1, 2, 4
-        "img_channels": 4, # 2, 3
-        "learning_rate": 1e-4, #1e-3, 1e-4, 1e-5, 1e-6
-        "epochs": 50,
-        "batch_size": 2, # 2, 4
-        "loss": "categorical_crossentropy", # categorical_crossentropy, dice_loss, binary_crossentropy, binary_dice_loss
-        "optimizer": "adam",
-        "dataset": "BraTS2021"
-    }
-    config = wandb.config
+    wandb.config = config
 
     data = args.data_path
     print(os.listdir(data))
@@ -124,8 +136,7 @@ def main():
     if config['num_classes'] == 4:
         subregions = [0]
     else:
-        #subregions = [1, 2, 3]
-        subregions = [1]
+        subregions = [1, 2, 3]
 
     for subregion in subregions:
         run = wandb.init(

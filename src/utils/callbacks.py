@@ -14,6 +14,11 @@ import re
 import losses
 from utils.data_processing import *
 
+# -------------------------------------------------------------------------------- #
+# Encapsulates callbacks used during training.
+# Includes custom prediction callback which predicts one image after each epoch
+# -------------------------------------------------------------------------------- #
+
 def show_predictions(my_model, flair, t1ce, t2, t1, mask, channels, subregion, n_slice, epoch, classes=4):
     test_img = load_img(flair, t1ce, t2, t1, img_channels=channels)
 
