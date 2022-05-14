@@ -19,7 +19,7 @@ from utils.data_processing import *
 import losses
 from metrics import *
 from segmentation_models_3D import losses as ls
-import unet
+from model import unet
 from generator import BratsGen
 
 # -------------------------------------------------------------------------------- #
@@ -203,7 +203,7 @@ def main():
         #steps_per_epoch = 10
         #val_steps_per_epoch = 2
 
-        model = unet.unet_model(
+        model = unet(
             img_height=128, img_width=128, img_depth=128, 
             img_channels=config["img_channels"], 
             num_classes=config["num_classes"]
