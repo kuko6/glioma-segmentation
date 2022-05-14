@@ -17,6 +17,7 @@ import re
 import wandb
 
 import utils.utils as utils
+from utils.data_processing import *
 import losses
 from metrics import *
 
@@ -52,7 +53,7 @@ def wandb_mask(img, true_mask, pred_mask):
     })
 
 
-def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
+def predict_image(my_model, flair, t1ce, t2, t1, mask, subdir='', counter=10000):
     if not os.path.isdir(f'outputs/{subdir}'):
         os.mkdir(f'outputs/{subdir}')
 
@@ -61,7 +62,7 @@ def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
     os.mkdir(f'outputs/{subdir}{img_name}/')
     subdir = subdir + f'{img_name}/'
 
-    test_img = utils.load_img([flair], [t1ce], [t2], img_channels=channels)
+    test_img = load_img([flair], [t1ce], [t2], [t1], img_channels=channels)
 
     test_prediction = my_model.predict(test_img)
     #print(np.unique(test_prediction))
@@ -70,7 +71,7 @@ def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
     #print('original shape: ', test_prediction.shape)
     #print('new shape: ', test_prediction_argmax.shape)
 
-    test_mask = utils.load_mask([mask], segmenting_subregion=subregion, classes=classes)
+    test_mask = load_mask([mask], segmenting_subregion=subregion, classes=classes)
     test_mask_argmax = np.argmax(test_mask, axis=-1)
     #print('mask shape: ', test_mask.shape)
     # print(test_mask.dtype)
@@ -136,17 +137,17 @@ def predict_image(my_model, flair, t1ce, t2, mask, subdir='', counter=10000):
         # wandb.log({f"{subdir}": mask}, step=counter+i)
 
 
-def model_eval(my_model, flair_list, t1ce_list, t2_list, mask_list):
+def model_eval(my_model, flair_list, t1ce_list, t2_list, t1_list, mask_list):
     dice_list = list()
     necrotic_list = list()
     edema_list = list()
     enhancing_list = list()
 
     i = 0
-    for flair_name, t1ce_name, t2_name, mask_name in zip(flair_list, t1ce_list, t2_list, mask_list):
+    for flair_name, t1ce_name, t2_name, t1_name, mask_name in zip(flair_list, t1ce_list, t2_list, t1_list, mask_list):
         # test_img = np.load(img_list[i])
-        test_img = utils.load_img([flair_name], [t1ce_name], [t2_name], img_channels=channels)
-        test_mask = utils.load_mask([mask_name], segmenting_subregion=subregion, classes=classes)
+        test_img = load_img([flair_name], [t1ce_name], [t2_name], [t1_name], img_channels=channels)
+        test_mask = load_mask([mask_name], segmenting_subregion=subregion, classes=classes)
         
         test_prediction = my_model.predict(test_img)
         # test_prediction = np.argmax(test_prediction, axis=-1)
@@ -177,7 +178,7 @@ def model_eval(my_model, flair_list, t1ce_list, t2_list, mask_list):
     for i in worst:
         img_name = re.search(r"\bBraTS2021_\d+", flair_list[i])
         print(f"image: {img_name.group()}, dice = {dice_list[i]}")
-        predict_image(my_model, flair=flair_list[i], t1ce=t1ce_list[i], t2=t2_list[i], mask=mask_list[i],
+        predict_image(my_model, flair=flair_list[i], t1ce=t1ce_list[i], t2=t2_list[i], t1=t1_list[i], mask=mask_list[i],
                       subdir='worst/',counter=counter)
         print()
         counter = counter + 10000
@@ -187,7 +188,7 @@ def model_eval(my_model, flair_list, t1ce_list, t2_list, mask_list):
     for i in best:
         img_name = re.search(r"\bBraTS2021_\d+", flair_list[i])
         print(f"image: {img_name.group()}, dice = {dice_list[i]}")
-        predict_image(my_model, flair=flair_list[i], t1ce=t1ce_list[i], t2=t2_list[i], mask=mask_list[i],
+        predict_image(my_model, flair=flair_list[i], t1ce=t1ce_list[i], t2=t2_list[i], t1=t1_list[i], mask=mask_list[i],
                       subdir='best/', counter=counter)
         print()
         counter = counter + 10000
@@ -219,6 +220,7 @@ def main():
     test_flair_list = glob.glob(testing_path + '/*/*flair.nii.gz')
     test_t1ce_list = glob.glob(testing_path + '/*/*t1ce.nii.gz')
     test_t2_list = glob.glob(testing_path + '/*/*t2.nii.gz')
+    test_t1_list = glob.glob(testing_path + '/*/*t1.nii.gz')
     test_mask_list = glob.glob(testing_path + '/*/*seg.nii.gz')
 
     if classes == 4:
@@ -240,18 +242,19 @@ def main():
     my_model = tf.keras.models.load_model(model_name, custom_objects=custom_objects, compile=False)
 
     print(f'\n|Testing of model: {model_name}|\n')
-    model_eval(my_model, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
+    model_eval(my_model, test_flair_list, test_t1ce_list, test_t2_list, test_t1_list, test_mask_list)
 
     # run.finish()
 
-    test_img = utils.load_img(
+    test_img = load_img(
         [training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
         [training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
         [training_path + 'BraTS2021_00002/BraTS2021_00002_t2.nii.gz'],
+        [training_path + 'BraTS2021_00002/BraTS2021_00002_t1.nii.gz'],
         img_channels=channels
     )
 
-    test_mask = utils.load_mask(
+    test_mask = load_mask(
         [training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
         segmenting_subregion=0, 
         classes=4

@@ -1,11 +1,6 @@
 import numpy as np
-import nibabel as nib
 from matplotlib import pyplot as plt
-from matplotlib.colors import ListedColormap
 from scipy import ndimage
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.utils import to_categorical
-from keras.callbacks import CSVLogger, EarlyStopping, ReduceLROnPlateau
 import wandb
 import tensorflow as tf
 import cv2
@@ -13,6 +8,7 @@ import re
 
 import losses
 from utils.data_processing import *
+import utils.utils as utils
 
 # -------------------------------------------------------------------------------- #
 # Encapsulates callbacks used during training.
@@ -28,7 +24,7 @@ def show_predictions(my_model, flair, t1ce, t2, t1, mask, channels, subregion, n
     test_mask = load_mask(mask, segmenting_subregion=subregion, classes=classes)
     test_mask_argmax = np.argmax(test_mask, axis=-1)
 
-    custom_cmap = get_custom_cmap()
+    custom_cmap = utils.get_custom_cmap()
 
     if channels == 3:
         fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(1, 5, figsize=(20, 10))

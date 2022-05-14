@@ -1,4 +1,5 @@
 import argparse
+import cmath
 # from azureml.core import Run
 
 import os
@@ -19,17 +20,19 @@ import re
 import wandb
 
 import utils.utils as utils
+from utils.data_processing import *
 import losses
 from metrics import *
 
 batch_size = 1
 subregion = 0
 classes = 4
-channels = 2
-n_slice = 70
-model1_path = 'models/separate/2ch/model_1.h5'
-model2_path = 'models/separate/2ch/model_2.h5'
-model3_path = 'models/separate/2ch/model_3.h5'
+channels = 3
+n_slice = 80
+model1_path = 'models/separate/3ch/model_1.h5'
+model2_path = 'models/separate/3ch/model_2.h5'
+model3_path = 'models/separate/3ch/model_3.h5'
+custom_cmap = utils.get_custom_cmap()
 
 
 def hausdorff_distance(y_true, y_pred, classes=[1, 2, 3]):
@@ -110,7 +113,7 @@ def combine_predictions(model1, model2, model3, img):
 
 
 # TODO: - do something with the dice so it doesnt require to_categorical
-def predict_image(model1, model2, model3, flair, t1ce, t2, mask, subdir='', counter=10000):
+def predict_image(model1, model2, model3, flair, t1ce, t2, t1, mask, subdir='', counter=10000):
     if not os.path.isdir(f'outputs/{subdir}'):
         os.mkdir(f'outputs/{subdir}')
 
@@ -119,11 +122,11 @@ def predict_image(model1, model2, model3, flair, t1ce, t2, mask, subdir='', coun
     os.mkdir(f'outputs/{subdir}{img_name}/')
     subdir = subdir + f'{img_name}/'
 
-    test_img = utils.load_img([flair], [t1ce], [t2], img_channels=channels)
+    test_img = load_img([flair], [t1ce], [t2], [t1], img_channels=channels)
 
     prediction = combine_predictions(model1, model2, model3, test_img)
     
-    test_mask = utils.load_mask([mask], segmenting_subregion=subregion, classes=classes)
+    test_mask = load_mask([mask], segmenting_subregion=subregion, classes=classes)
     test_mask_argmax = np.argmax(test_mask, axis=-1)
     prediction_encoded = to_categorical(prediction, num_classes=4)
 
@@ -131,8 +134,6 @@ def predict_image(model1, model2, model3, flair, t1ce, t2, mask, subdir='', coun
     print('dice edema:', dice_coef_edema(test_mask, prediction_encoded).numpy())
     print('dice necrotic:', dice_coef_necrotic(test_mask, prediction_encoded).numpy())
     print('dice enhancing:', dice_coef_enhancing(test_mask, prediction_encoded).numpy())
-
-    custom_cmap = utils.get_custom_cmap()
 
     volume_start = 20
     volume_end = 126 # 125
@@ -184,17 +185,17 @@ def predict_image(model1, model2, model3, flair, t1ce, t2, mask, subdir='', coun
 
 # TODO: - do something with the dice so it doesnt require to_categorical
 #       - save best and worst predictions so it doesnt have to create them again 
-def model_eval(model1, model2, model3, flair_list, t1ce_list, t2_list, mask_list):
+def model_eval(model1, model2, model3, flair_list, t1ce_list, t2_list, t1_list, mask_list):
     dice_list = list()
     necrotic_list = list()
     edema_list = list()
     enhancing_list = list()
 
     i = 0
-    for flair_name, t1ce_name, t2_name, mask_name in zip(flair_list, t1ce_list, t2_list, mask_list):
+    for flair_name, t1ce_name, t2_name, t1_name, mask_name in zip(flair_list, t1ce_list, t2_list, t1_list, mask_list):
         # test_img = np.load(img_list[i])
-        test_img = utils.load_img([flair_name], [t1ce_name], [t2_name], img_channels=channels)
-        test_mask = utils.load_mask([mask_name], segmenting_subregion=subregion, classes=classes)
+        test_img = load_img([flair_name], [t1ce_name], [t2_name], [t1_name], img_channels=channels)
+        test_mask = load_mask([mask_name], segmenting_subregion=subregion, classes=classes)
         # test_mask = np.argmax(test_mask, axis=-1)
 
         # test_img_input = np.expand_dims(test_img, axis=0)
@@ -260,6 +261,7 @@ def main():
     test_flair_list = glob.glob(testing_path + '/*/*flair.nii.gz')
     test_t1ce_list = glob.glob(testing_path + '/*/*t1ce.nii.gz')
     test_t2_list = glob.glob(testing_path + '/*/*t2.nii.gz')
+    test_t1_list = glob.glob(testing_path + '/*/*t1.nii.gz')
     test_mask_list = glob.glob(testing_path + '/*/*seg.nii.gz')
 
     if not os.path.isdir('outputs'):
@@ -275,7 +277,7 @@ def main():
     model2 = tf.keras.models.load_model(model2_path, custom_objects=custom_objects, compile=False)
     model3 = tf.keras.models.load_model(model3_path, custom_objects=custom_objects, compile=False)
     
-    #model_eval(model1, model2, model3, test_flair_list, test_t1ce_list, test_t2_list, test_mask_list)
+    #model_eval(model1, model2, model3, test_flair_list, test_t1ce_list, test_t2_list, test_t1_list, test_mask_list)
 
     #run.finish()
 
@@ -293,14 +295,15 @@ def main():
     print(np.unique(stacked_prediction))
     '''
 
-    test_img = utils.load_img(
+    test_img = load_img(
         [testing_path + 'BraTS2021_01627/BraTS2021_01627_flair.nii.gz'],
         [testing_path + 'BraTS2021_01627/BraTS2021_01627_t1ce.nii.gz'],
         [testing_path + 'BraTS2021_01627/BraTS2021_01627_t2.nii.gz'],
+        [testing_path + 'BraTS2021_01627/BraTS2021_01627_t1.nii.gz'],
         img_channels=channels
     )
 
-    test_mask = utils.load_mask(
+    test_mask = load_mask(
         [testing_path + 'BraTS2021_01627/BraTS2021_01627_seg.nii.gz'],
         segmenting_subregion=0, 
         classes=4
@@ -324,7 +327,48 @@ def main():
     print('dice enhancing:', dice_coef_enhancing(test_mask, prediction_encoded).numpy())
 
     test_mask = np.argmax(test_mask, axis=-1)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    ax1.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 0], 270), cmap='gray')
+    ax1.set_title('Image flair', fontsize=30)
+    ax1.axis('off')
+    ax2.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 1], 270), cmap='gray')
+    ax2.set_title('Image t1ce', fontsize=30)
+    ax2.axis('off')
+    fig.savefig(f'outputs/seq.png')
+    plt.close()
 
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    ax1.imshow(ndimage.rotate(test_mask[0][:, :, n_slice], 270), cmap=custom_cmap)
+    ax1.set_title('Mask')
+    ax1.axis('off')
+    ax2.imshow(ndimage.rotate(prediction[0][:, :, n_slice], 270), cmap=custom_cmap)
+    ax2.set_title('Prediction')
+    ax2.axis('off')
+    fig.savefig(f'outputs/masks.png')
+    plt.close()
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
+    ax1.imshow(ndimage.rotate(prediction1_argmax[0][:, :, n_slice], 270), cmap=custom_cmap)
+    ax1.set_title('Prediction NCR')
+    ax1.axis('off')
+    fig.savefig(f'outputs/ncr.png')
+    plt.close()
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
+    ax1.imshow(ndimage.rotate(prediction2_argmax[0][:, :, n_slice], 270), cmap=custom_cmap)
+    ax1.set_title('Prediction ED')
+    ax1.axis('off')
+    fig.savefig(f'outputs/ed.png')
+    plt.close()
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
+    ax1.imshow(ndimage.rotate(prediction3_argmax[0][:, :, n_slice], 270), cmap=custom_cmap)
+    ax1.set_title('Prediction ET')
+    ax1.axis('off')
+    fig.savefig(f'outputs/et.png')
+    plt.close()
+
+    '''
     fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(1, 7, figsize=(20, 10))
     ax1.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 0], 270), cmap='gray')
     ax1.set_title('Image flair')
@@ -342,7 +386,7 @@ def main():
     ax7.set_title('Prediction 3')
     fig.savefig(f'outputs/test.png')
     plt.close()
-
+    '''
 
 if __name__ == '__main__':
     main()

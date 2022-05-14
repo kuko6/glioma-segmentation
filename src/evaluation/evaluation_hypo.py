@@ -15,7 +15,8 @@ from tensorflow.keras.utils import to_categorical
 import re
 import keras.backend as K
 
-import utils.utils as utils
+#import utils.utils as utils
+from utils.data_processing import *
 import losses
 from metrics import *
 
@@ -51,7 +52,7 @@ def prepare_img8_sagittal(img8_path, mask8_path):
       tmp_img8[:, :, i] = cv2.resize(img8[:, :, i + volume_start], (128, 128), interpolation=inter)
       tmp_mask8[:, :, i] = cv2.resize(mask8[:, :, i + volume_start], (128, 128), interpolation=inter)
   #tmp_img8 = np.swapaxes(tmp_img8, 1, 2)
-  tmp_img8 = utils.normalise(tmp_img8)
+  tmp_img8 = normalise(tmp_img8)
   #tmp_mask8 = np.swapaxes(tmp_mask8, 1, 2)
 
   image = np.stack([tmp_img8, tmp_img8], axis=3)
@@ -74,7 +75,7 @@ def prepare_img8_axial(img8_path, mask8_path):
       tmp_img8[:, i, :] = cv2.resize(img8[:, i + volume_start, :], (128, 128), interpolation=inter)
       tmp_mask8[:, i, :] = cv2.resize(mask8[:, i + volume_start, :], (128, 128), interpolation=inter)
   tmp_img8 = np.swapaxes(tmp_img8, 1, 2)
-  tmp_img8 = utils.normalise(tmp_img8)
+  tmp_img8 = normalise(tmp_img8)
   tmp_mask8 = np.swapaxes(tmp_mask8, 1, 2)
 
   image = np.stack([tmp_img8, tmp_img8], axis=3)
@@ -120,8 +121,8 @@ def main():
   my_model = tf.keras.models.load_model(model_name, custom_objects=custom_objects, compile=False)
 
   # Img 4
-  test_img4 = utils.load_img([img4_path], [img4_path], [img4_path], img_channels=2)
-  test_mask4 = utils.load_mask([mask4_path], segmenting_subregion=0)
+  test_img4 = load_img([img4_path], [img4_path], [img4_path], [img4_path], img_channels=2)
+  test_mask4 = load_mask([mask4_path], segmenting_subregion=0)
 
   test_prediction4 = my_model.predict(test_img4)
   test_prediction4[:,:,:,:,1] += test_prediction4[:,:,:,:,2]
@@ -132,8 +133,8 @@ def main():
   test_mask4 = np.argmax(test_mask4, axis=-1)
 
   # Img 26
-  test_img26 = utils.load_img([img26_path], [img26_path], [img26_path], img_channels=2)
-  test_mask26 = utils.load_mask([mask26_path], segmenting_subregion=0)
+  test_img26 = load_img([img26_path], [img26_path], [img26_path], [img26_path], img_channels=2)
+  test_mask26 = load_mask([mask26_path], segmenting_subregion=0)
 
   test_prediction26 = my_model.predict(test_img26)
   test_prediction26[:,:,:,:,1] += test_prediction26[:,:,:,:,2]

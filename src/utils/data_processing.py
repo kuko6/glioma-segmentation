@@ -11,22 +11,9 @@ import cv2
 # -------------------------------------------------------------------------------- #
 # Additional functions used for data processing or loading.
 # Includes:
-#   - custom cmap used for mask visualization
-#   - functions used for loading images and masks and their helper functions
+#   - functions used for loading images and masks 
+#   - preprocessing functions
 # -------------------------------------------------------------------------------- #
-
-def get_custom_cmap():
-    colorarray = [
-        [0/256, 0/256, 0/256, 1], # Background
-        #[200/256, 192/256, 249/256, 1], # Background
-        [105/256, 173/256, 212/256, 1], # Necrotic
-        [114/256, 195/256, 116/256, 1], # Edema
-        [254/256, 249/256, 9/256, 1], # Enhancing
-    ]
-    cmap = ListedColormap(colorarray)
-
-    return cmap
-
 
 # based on https://stackoverflow.com/a/44007180
 def get_dimensions(img, scale=.7):

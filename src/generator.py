@@ -71,7 +71,7 @@ class BratsGen(tf.keras.utils.Sequence):
             additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}
         ) # 50% chance
         randomRotate = A.Compose(
-            [A.Rotate(p=1, limit=(-10, 10), border_mode=cv2.BORDER_CONSTANT)],
+            [A.Rotate(p=1, limit=(-20, 20), border_mode=cv2.BORDER_CONSTANT)],
             additional_targets={'image1' : 'image', 'image2': 'image', 'image3': 'image'}
         ) # 60% chance
 
