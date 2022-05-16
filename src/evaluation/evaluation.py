@@ -34,7 +34,7 @@ from metrics import *
 classes = 4
 channels = 3
 n_slice = 80
-model_name = 'models/model_2ch_aug_e3.h5'
+model_name = '../../models/model_3ch_aug_e4.h5'
 custom_cmap = utils.get_custom_cmap()
 
 
@@ -202,7 +202,10 @@ def main():
     parser.add_argument('--wandb', type=str, help='wandb id')
     args = parser.parse_args()
 
-    data = args.data_path
+    if args.data_path:
+        data = args.data_path
+    else:
+        data = os.path.join(os.getcwd(), '../../BraTS2021')
     print(os.listdir(data))
     #training_path = os.path.join(data, 'train/')
     #validation_path = os.path.join(data, 'val/')
@@ -229,23 +232,6 @@ def main():
 
     print(f'\n|Testing of model: {model_name}|\n')
     model_eval(my_model, test_flair_list, test_t1ce_list, test_t2_list, test_t1_list, test_mask_list)
-
-    '''
-    test_img = load_img(
-        [training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
-        [training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
-        [training_path + 'BraTS2021_00002/BraTS2021_00002_t2.nii.gz'],
-        [training_path + 'BraTS2021_00002/BraTS2021_00002_t1.nii.gz'],
-        img_channels=channels
-    )
-
-    test_mask = load_mask(
-        [training_path + 'BraTS2021_00002/BraTS2021_00002_seg.nii.gz'],
-        segmenting_subregion=0, 
-        classes=4
-    )
-    test_mask = np.argmax(test_mask, axis=-1)
-    '''
 
 
 if __name__ == '__main__':

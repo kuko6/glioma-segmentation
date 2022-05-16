@@ -35,39 +35,31 @@ from metrics import *
 #subregion = 0
 
 classes = 4
-channels = 2
+channels = 3
 n_slice = 80
-model1_name = 'models/separate/2ch/model_1.h5'
-model2_name = 'models/separate/2ch/model_2.h5'
-model3_name = 'models/separate/2ch/model_3.h5'
+model1_name = '../../models/separate/3ch/model_NCR.h5'
+model2_name = '../../models/separate/3ch/model_ED.h5'
+model3_name = '../../models/separate/3ch/model_ET.h5'
 custom_cmap = utils.get_custom_cmap()
 
 
-# TODO: - make use of numpy methods in the loop
 # combines the individual predictions based on based on their values in the selected voxel, where 
 # in case of a collision, or when multiple models segmented the same voxel, we chose the one 
 # with a higher value in the probability map returned by the respective model
 def combine_predictions(model1, model2, model3, img):
+    # generate individual segmentations and set the corresponding values
     prediction1 = model1.predict(img)
     prediction1_argmax = np.argmax(prediction1, axis=-1)
-    #print(np.unique(prediction1_argmax))
 
     prediction2 = model2.predict(img)
     prediction2_argmax = np.argmax(prediction2, axis=-1)
     prediction2_argmax[prediction2_argmax == 1] = 2
-    #print(np.unique(prediction2_argmax))
 
     prediction3 = model3.predict(img)
     prediction3_argmax = np.argmax(prediction3, axis=-1)
     prediction3_argmax[prediction3_argmax == 1] = 3
-    #print(np.unique(prediction3_argmax))
-
-    #print(prediction1.shape)
-    #print(prediction1_argmax.shape)
 
     combined_prediction = np.zeros((1, 128, 128, 128))
-    #print(stacked_prediction.shape)
-    #print(np.unique(stacked_prediction))
 
     predictions = [prediction1, prediction2, prediction3]
     predictions_argmax = [prediction1_argmax, prediction2_argmax, prediction3_argmax]
@@ -93,8 +85,6 @@ def combine_predictions(model1, model2, model3, img):
                             if prediction3[0, i, j, k, 1] < pred[0, i, j, k, 1]:
                                 combined_prediction[0, i, j, k] = pred_argmax[0, i, j, k]
 
-    #print(np.unique(stacked_prediction))
-    #print(prediction1[0, 1, 1, 1, 0], prediction1[0, 1, 1, 1, 1])
     return combined_prediction
 
 
@@ -169,8 +159,7 @@ def predict_image(model1, model2, model3, flair, t1ce, t2, t1, mask, subdir=''):
         plt.close()
 
 
-# TODO: - do something with the dice so it doesnt require to_categorical
-#       - save best and worst predictions so it doesnt have to create them again 
+# runs the evaluation of the provided models on the testing dataset
 def model_eval(model1, model2, model3, flair_list, t1ce_list, t2_list, t1_list, mask_list):
     dice_list = list()
     necrotic_list = list()
@@ -242,7 +231,10 @@ def main():
     parser.add_argument('--wandb', type=str, help='wandb id')
     args = parser.parse_args()
 
-    data = args.data_path
+    if args.data_path:
+        data = args.data_path
+    else:
+        data = os.path.join(os.getcwd(), '../../BraTS2021')
     print(os.listdir(data))
     #training_path = os.path.join(data, 'train/')
     #validation_path = os.path.join(data, 'val/')
@@ -269,114 +261,6 @@ def main():
     
     model_eval(model1, model2, model3, test_flair_list, test_t1ce_list, test_t2_list, test_t1_list, test_mask_list)
 
-    #run.finish()
-
-    '''
-    stacked_prediction = prediction1[:,:,:,:]
-    print(stacked_prediction.shape)
-    print(np.unique(stacked_prediction))
-
-    stacked_prediction = np.stack([prediction1[:,:,:,:,0], prediction1[:,:,:,:,1], prediction2[:,:,:,:,1], prediction3[:,:,:,:,1]], axis=-1)
-    print(stacked_prediction.shape)
-    print(np.unique(stacked_prediction))
-
-    stacked_prediction = np.argmax(stacked_prediction, axis=-1)
-    print(stacked_prediction.shape)
-    print(np.unique(stacked_prediction))
-    '''
-    '''
-    test_img = load_img(
-        [testing_path + 'BraTS2021_01627/BraTS2021_01627_flair.nii.gz'],
-        [testing_path + 'BraTS2021_01627/BraTS2021_01627_t1ce.nii.gz'],
-        [testing_path + 'BraTS2021_01627/BraTS2021_01627_t2.nii.gz'],
-        [testing_path + 'BraTS2021_01627/BraTS2021_01627_t1.nii.gz'],
-        img_channels=channels
-    )
-
-    test_mask = load_mask(
-        [testing_path + 'BraTS2021_01627/BraTS2021_01627_seg.nii.gz'],
-        segmenting_subregion=0, 
-        classes=4
-    )
-
-    prediction1 = model1.predict(test_img)
-    prediction1_argmax = np.argmax(prediction1, axis=-1)
-    prediction2 = model2.predict(test_img)
-    prediction2_argmax = np.argmax(prediction2, axis=-1)
-    prediction2_argmax[prediction2_argmax == 1] = 2
-    prediction3 = model3.predict(test_img)
-    prediction3_argmax = np.argmax(prediction3, axis=-1)
-    prediction3_argmax[prediction3_argmax == 1] = 3
-
-    prediction = combine_predictions(model1, model2, model3, test_img)
-    prediction_encoded = to_categorical(prediction, num_classes=4)
-
-    print('dice:', dice_coef_multilabel(classes=classes)(test_mask, prediction_encoded).numpy())
-    print('dice edema:', dice_coef_edema(test_mask, prediction_encoded).numpy())
-    print('dice necrotic:', dice_coef_necrotic(test_mask, prediction_encoded).numpy())
-    print('dice enhancing:', dice_coef_enhancing(test_mask, prediction_encoded).numpy())
-
-    test_mask = np.argmax(test_mask, axis=-1)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    ax1.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 0], 270), cmap='gray')
-    ax1.set_title('Image flair', fontsize=30)
-    ax1.axis('off')
-    ax2.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 1], 270), cmap='gray')
-    ax2.set_title('Image t1ce', fontsize=30)
-    ax2.axis('off')
-    fig.savefig(f'outputs/seq.png')
-    plt.close()
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    ax1.imshow(ndimage.rotate(test_mask[0][:, :, n_slice], 270), cmap=custom_cmap)
-    ax1.set_title('Mask')
-    ax1.axis('off')
-    ax2.imshow(ndimage.rotate(prediction[0][:, :, n_slice], 270), cmap=custom_cmap)
-    ax2.set_title('Prediction')
-    ax2.axis('off')
-    fig.savefig(f'outputs/masks.png')
-    plt.close()
-
-    fig, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
-    ax1.imshow(ndimage.rotate(prediction1_argmax[0][:, :, n_slice], 270), cmap=custom_cmap)
-    ax1.set_title('Prediction NCR')
-    ax1.axis('off')
-    fig.savefig(f'outputs/ncr.png')
-    plt.close()
-
-    fig, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
-    ax1.imshow(ndimage.rotate(prediction2_argmax[0][:, :, n_slice], 270), cmap=custom_cmap)
-    ax1.set_title('Prediction ED')
-    ax1.axis('off')
-    fig.savefig(f'outputs/ed.png')
-    plt.close()
-
-    fig, (ax1) = plt.subplots(1, 1, figsize=(20, 10))
-    ax1.imshow(ndimage.rotate(prediction3_argmax[0][:, :, n_slice], 270), cmap=custom_cmap)
-    ax1.set_title('Prediction ET')
-    ax1.axis('off')
-    fig.savefig(f'outputs/et.png')
-    plt.close()
-    '''
-    '''
-    fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(1, 7, figsize=(20, 10))
-    ax1.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 0], 270), cmap='gray')
-    ax1.set_title('Image flair')
-    ax2.imshow(ndimage.rotate(test_img[0][:, :, n_slice, 1], 270), cmap='gray')
-    ax2.set_title('Image t1ce')
-    ax3.imshow(ndimage.rotate(test_mask[0][:, :, n_slice], 270))
-    ax3.set_title('Mask')
-    ax4.imshow(ndimage.rotate(prediction[0][:, :, n_slice], 270))
-    ax4.set_title('Prediction')
-    ax5.imshow(ndimage.rotate(prediction1_argmax[0][:, :, n_slice], 270))
-    ax5.set_title('Prediction 1')
-    ax6.imshow(ndimage.rotate(prediction2_argmax[0][:, :, n_slice], 270))
-    ax6.set_title('Prediction 2')
-    ax7.imshow(ndimage.rotate(prediction3_argmax[0][:, :, n_slice], 270))
-    ax7.set_title('Prediction 3')
-    fig.savefig(f'outputs/test.png')
-    plt.close()
-    '''
 
 if __name__ == '__main__':
     main()

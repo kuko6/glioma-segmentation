@@ -9,6 +9,8 @@
 *.ipynb
 test.*
 
+BraTS2021/
+
 azure/
 separate_subregion_training/
 
@@ -31,7 +33,7 @@ models/model_test_3ch.h5
 
 ############################################
 
-#models/separate/2ch/*
+models/separate/2ch/*
 models/separate/3ch/*
 
 ############################################

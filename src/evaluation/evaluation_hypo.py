@@ -19,6 +19,9 @@ import keras.backend as K
 from utils.data_processing import *
 import losses
 from metrics import *
+from utils.utils import *
+
+custom_cmap = get_custom_cmap()
 
 def dice_coef_binary(y_true, y_pred, smooth=1.0):
     y_true_f = K.flatten(y_true)
@@ -78,7 +81,7 @@ def prepare_img8_axial(img8_path, mask8_path):
   tmp_img8 = normalise(tmp_img8)
   tmp_mask8 = np.swapaxes(tmp_mask8, 1, 2)
 
-  image = np.stack([tmp_img8, tmp_img8], axis=3)
+  image = np.stack([tmp_img8, tmp_img8, tmp_img8], axis=3)
   mask = to_categorical(tmp_mask8, num_classes=4)
   return np.array([image]), np.array([mask])
 
@@ -117,11 +120,11 @@ def main():
     'dice_coef_enhancing': dice_coef_enhancing
   }
 
-  model_name = 'models/categorical_crossentropy_50_2ch_sub0_aug.h5'
+  model_name = 'models/model_3ch_aug_e4.h5'
   my_model = tf.keras.models.load_model(model_name, custom_objects=custom_objects, compile=False)
 
   # Img 4
-  test_img4 = load_img([img4_path], [img4_path], [img4_path], [img4_path], img_channels=2)
+  test_img4 = load_img([img4_path], [img4_path], [img4_path], [img4_path], img_channels=3)
   test_mask4 = load_mask([mask4_path], segmenting_subregion=0)
 
   test_prediction4 = my_model.predict(test_img4)
@@ -133,7 +136,7 @@ def main():
   test_mask4 = np.argmax(test_mask4, axis=-1)
 
   # Img 26
-  test_img26 = load_img([img26_path], [img26_path], [img26_path], [img26_path], img_channels=2)
+  test_img26 = load_img([img26_path], [img26_path], [img26_path], [img26_path], img_channels=3)
   test_mask26 = load_mask([mask26_path], segmenting_subregion=0)
 
   test_prediction26 = my_model.predict(test_img26)
@@ -167,30 +170,39 @@ def main():
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 10))
     ax1.imshow(ndimage.rotate(test_img4[0][:, :, i, 0], 270), cmap='gray')
     ax1.set_title('Image 4')
-    ax2.imshow(ndimage.rotate(test_mask4[0][:, :, i], 270))
+    ax1.axis('off')
+    ax2.imshow(ndimage.rotate(test_mask4[0][:, :, i], 270), cmap=custom_cmap)
     ax2.set_title('Mask 4')
-    ax3.imshow(ndimage.rotate(test_prediction4[0][:, :, i], 270))
+    ax2.axis('off')
+    ax3.imshow(ndimage.rotate(test_prediction4[0][:, :, i], 270), cmap=custom_cmap)
     ax3.set_title('Prediction 4')
+    ax3.axis('off')
     fig.savefig(f'outputs/4/slice_{i}.png')
     plt.close()
     
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 10))
     ax1.imshow(ndimage.rotate(test_img26[0][:, :, i, 0], 270), cmap='gray')
     ax1.set_title('Image 26')
-    ax2.imshow(ndimage.rotate(test_mask26[0][:, :, i], 270))
+    ax1.axis('off')
+    ax2.imshow(ndimage.rotate(test_mask26[0][:, :, i], 270), cmap=custom_cmap)
     ax2.set_title('Mask 26')
-    ax3.imshow(ndimage.rotate(test_prediction26[0][:, :, i], 270))
+    ax2.axis('off')
+    ax3.imshow(ndimage.rotate(test_prediction26[0][:, :, i], 270), cmap=custom_cmap)
     ax3.set_title('Prediction 26')
+    ax3.axis('off')
     fig.savefig(f'outputs/26/slice_{i}.png')
     plt.close()
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 10))
     ax1.imshow(test_img8[0][:, :, volume_end-i, 0], cmap='gray')
     ax1.set_title('Image 8')
-    ax2.imshow(test_mask8[0][:, :, volume_end-i])
+    ax1.axis('off')
+    ax2.imshow(test_mask8[0][:, :, volume_end-i], cmap=custom_cmap)
     ax2.set_title('Mask 8')
-    ax3.imshow(test_prediction8[0][:, :, volume_end-i])
+    ax2.axis('off')
+    ax3.imshow(test_prediction8[0][:, :, volume_end-i], cmap=custom_cmap)
     ax3.set_title('Prediction 8')
+    ax3.axis('off')
     fig.savefig(f'outputs/8/slice_{i}.png')
     plt.close()
 

@@ -70,7 +70,7 @@ def show_predictions(my_model, flair, t1ce, t2, t1, mask, channels, subregion, n
 
 
 class PredictionCallback(tf.keras.callbacks.Callback):
-    def __init__(self, flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes=4):
+    def __init__(self, flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes=4, use_wandb=False):
         self.flair = flair
         self.t1ce = t1ce
         self.t2 = t2
@@ -80,6 +80,8 @@ class PredictionCallback(tf.keras.callbacks.Callback):
         self.subregion = subregion
         self.n_slice = n_slice
         self.classes = classes
+        self.use_wandb = use_wandb
+
         if subregion == 0:
             self.labels = {0: 'background', 1: 'necrotic', 2: 'edema', 3: 'enhancing'}
         elif subregion == 1:
@@ -109,16 +111,17 @@ class PredictionCallback(tf.keras.callbacks.Callback):
         )
 
         # logs the mask to wandb
-        mask = self.wandb_mask(image, true_mask, pred_mask)
-        wandb.log({"predictions": mask}, commit=False)
+        if self.use_wandb:
+            mask = self.wandb_mask(image, true_mask, pred_mask)
+            wandb.log({"predictions": mask}, commit=False)
 
 
-def callback(flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes):
+def get_callbacks(flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes, use_wandb):
     csv_logger = CSVLogger(f'outputs/training_{subregion}.log', separator=',', append=False)
     callbacks = [
         EarlyStopping(monitor='loss', min_delta=0, patience=5, verbose=1, mode='auto'),
         #ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=2, min_lr=0.000001, verbose=1),
-        PredictionCallback(flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes),
+        PredictionCallback(flair, t1ce, t2, t1, mask, channels, subregion, n_slice, classes, use_wandb),
         csv_logger
     ]
 

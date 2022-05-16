@@ -3,6 +3,7 @@ import argparse
 
 import os
 import glob
+from tkinter.messagebox import NO
 
 import numpy as np
 import segmentation_models_3D as sm
@@ -36,7 +37,7 @@ from generator import BratsGen
 
 config = {
     "num_classes": 4, # 1, 2, 4
-    "img_channels": 4, # 2, 3, 4
+    "img_channels": 3, # 2, 3, 4
     "learning_rate": 1e-4, #1e-3, 1e-4, 1e-5, 1e-6
     "epochs": 50,
     "batch_size": 2, # 2, 4
@@ -109,14 +110,21 @@ def main():
     args = parser.parse_args()
 
     wandb_key = args.wandb
-    wandb.login(key=wandb_key)
-    wandb.config = config
-
-    data = args.data_path
+    use_wandb = False
+    if wandb_key:
+        wandb.login(key=wandb_key)
+        wandb.config = config
+        use_wandb = True
+    
+    if args.data_path:
+        data = args.data_path
+    else:
+        data = os.path.join(os.getcwd(), '../BraTS2021')
     print(os.listdir(data))
+
     training_path = os.path.join(data, 'train/')
-    testing_path = os.path.join(data, 'test/')
     validation_path = os.path.join(data, 'val/')
+    #testing_path = os.path.join(data, 'test/')
 
     if not os.path.isdir('outputs'):
         os.mkdir('outputs')
@@ -141,7 +149,8 @@ def main():
 
     # loop relevant only for separate class training, otherwise will only do one iteration
     for subregion in subregions:
-        run = wandb.init(
+        if use_wandb:
+            run = wandb.init(
             project="BraTS2021",
             name=f"{config['loss']}_{config['epochs']}_{config['img_channels']}ch_sub{subregion}",
             entity="kuko",
@@ -149,7 +158,7 @@ def main():
             config=config
         )
 
-        # getting the training and valitation generators
+        # setting the training and valitation generators
         train_img_datagen = BratsGen(
             flair_list=train_flair_list, 
             t1ce_list=train_t1ce_list, 
@@ -215,30 +224,22 @@ def main():
 
         # setting the loss function
         if config['loss'] == "dice_loss":
-            #model.compile(optimizer=optim, loss=losses.dice_loss, metrics=metrics)
-            #loss = sm.losses.DiceLoss(class_weights=[0.02, 0.98])
             model.compile(optimizer=optim, loss=losses.dice_loss, metrics=metrics)
             print('using dice_loss')
         elif config['num_classes'] == 4:
-            # model.compile(optimizer=optim, loss=losses.loss(), metrics=metrics)
             if config['loss'] == "categorical_crossentropy":
                 model.compile(optimizer=optim, loss="categorical_crossentropy", metrics=metrics)
                 print('using categorical_crossentropy')
         elif config['num_classes'] == 2:
-            #loss = losses.weighted_categorical_crossentropy([0.02, 0.98])
-            #model.compile(optimizer=optim, loss=loss, metrics=metrics)
-            #print('using weighted categorical_crossentropy')
             model.compile(optimizer=optim, loss="categorical_crossentropy", metrics=metrics)
             print('using categorical_crossentropy')
         else:
             model.compile(optimizer=optim, loss="binary_crossentropy", metrics=metrics)
             print('using binary_crossentropy')
-            #model.compile(optimizer=optim, loss=losses.dice_coef_binary_loss, metrics=metrics)
-            #print('using binary_dice_loss')
 
         # defining the callbacks
         # the sequences are needed because of the prediction callback
-        callbacks = callback(
+        callbacks = get_callbacks(
             flair=[training_path + 'BraTS2021_00002/BraTS2021_00002_flair.nii.gz'],
             t1ce=[training_path + 'BraTS2021_00002/BraTS2021_00002_t1ce.nii.gz'],
             t2=[training_path + 'BraTS2021_00002/BraTS2021_00002_t2.nii.gz'],
@@ -247,8 +248,12 @@ def main():
             channels=config['img_channels'],
             subregion=subregion,
             n_slice=80,
-            classes=config['num_classes']
+            classes=config['num_classes'], 
+            use_wandb=use_wandb
         )
+
+        if use_wandb:
+            callbacks.append(WandbCallback())
 
         # training the model
         history = model.fit(
@@ -256,7 +261,7 @@ def main():
             steps_per_epoch=steps_per_epoch,
             epochs=config["epochs"],
             verbose=1,
-            callbacks=[callbacks, WandbCallback()],
+            callbacks=callbacks,
             validation_data=val_img_datagen,
             validation_steps=val_steps_per_epoch
         )
@@ -269,9 +274,8 @@ def main():
         with open(hist_csv_file, mode='w') as f:
             hist_df.to_csv(f)
 
-        run.finish()
-
-    # wandb.finish()
+        if use_wandb:
+            run.finish()
 
 
 if __name__ == '__main__':

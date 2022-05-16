@@ -13,7 +13,7 @@ from tensorflow.keras.utils import to_categorical
 
 # a implementation of for multiclass segmentation
 # computes a mean of dice coefficient for each class
-# https://github.com/keras-team/keras/issues/9395#issuecomment-379276452
+# based on https://github.com/keras-team/keras/issues/9395#issuecomment-379276452
 def dice_coef_binary(y_true, y_pred, smooth=1.0):
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
