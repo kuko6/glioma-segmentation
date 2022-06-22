@@ -4,11 +4,8 @@
 
 .DS_Store
 __pycache__/
-models/
 outputs/slices*/
 Hotove_segmentacie/
 BraTS2021/
 
-azureml_environment.json
 azure/config.json
-*.h5

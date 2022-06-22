@@ -58,7 +58,6 @@ class BratsGen(tf.keras.utils.Sequence):
         top_y, bottom_y = center_y - height_scaled / 2, center_y + height_scaled / 2
         return int(left_x), int(right_x), int(top_y), int(bottom_y)
 
-    # normalisation based on https://stackoverflow.com/a/59601298
     def __normalise(self, image):
         scaler = MinMaxScaler()
         image = scaler.fit_transform(image.reshape(-1, image.shape[-1])).reshape(image.shape)
